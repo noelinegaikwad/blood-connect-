@@ -1,10 +1,9 @@
 /*
-  1. Create a Supabase project.
-  2. Open Project Settings > API.
-  3. Paste your Project URL and anon/publishable key below.
+  BloodConnect — Supabase Configuration
+
   NEVER put a service_role/secret key in this file.
 */
 window.SUPABASE_CONFIG = {
-  url: "YOUR_SUPABASE_URL",
-  anonKey: "YOUR_SUPABASE_ANON_KEY"
+  url: "https://uvxxzwcxwhkjxxpvbrqj.supabase.co",
+  anonKey: "sb_publishable_s0vLd_1XnBdZOORd08X0Zw_kRZAGzK3"
 };
