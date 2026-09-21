@@ -1,8 +1,9 @@
 /* ============================================================
    BLOODCONNECT — app.js
-   Blood Donation Network
+   Main Website JavaScript
    Frontend: HTML + CSS + Vanilla JavaScript
    Backend: Supabase Auth + PostgreSQL
+   Admin: Separate admin.html + admin.js
    ============================================================ */
 
 
@@ -10,14 +11,12 @@
    1. SUPABASE SETUP
    ============================================================ */
 
-const { createClient } = supabase;
-
 if (!window.SUPABASE_CONFIG) {
-    console.error("SUPABASE_CONFIG is missing.");
+    console.error("Supabase configuration is missing.");
     alert("Supabase configuration is missing. Please check config.js.");
 }
 
-const supabaseClient = createClient(
+const supabaseClient = supabase.createClient(
     window.SUPABASE_CONFIG.url,
     window.SUPABASE_CONFIG.anonKey
 );
@@ -32,13 +31,12 @@ const state = {
     profile: null,
     donors: [],
     requests: [],
-    currentAdminTab: "pending",
     loading: false
 };
 
 
 /* ============================================================
-   3. DOM HELPERS
+   3. BASIC HELPERS
    ============================================================ */
 
 const $ = (selector) => document.querySelector(selector);
@@ -51,7 +49,7 @@ function getElement(id) {
 
 
 /* ============================================================
-   4. TOAST / ALERT SYSTEM
+   4. TOAST
    ============================================================ */
 
 function showToast(message, type = "success") {
@@ -59,9 +57,13 @@ function showToast(message, type = "success") {
     let toast = getElement("toast");
 
     if (!toast) {
+
         toast = document.createElement("div");
+
         toast.id = "toast";
+
         toast.className = "toast";
+
         document.body.appendChild(toast);
     }
 
@@ -76,7 +78,7 @@ function showToast(message, type = "success") {
 
 
 /* ============================================================
-   5. LOADING
+   5. LOADING BUTTON
    ============================================================ */
 
 function setLoading(button, loading, text = "Loading...") {
@@ -85,7 +87,8 @@ function setLoading(button, loading, text = "Loading...") {
 
     if (loading) {
 
-        button.dataset.originalText = button.innerHTML;
+        button.dataset.originalText =
+            button.innerHTML;
 
         button.disabled = true;
 
@@ -99,24 +102,30 @@ function setLoading(button, loading, text = "Loading...") {
         button.disabled = false;
 
         if (button.dataset.originalText) {
-            button.innerHTML = button.dataset.originalText;
+
+            button.innerHTML =
+                button.dataset.originalText;
         }
     }
 }
 
 
 /* ============================================================
-   6. MODAL FUNCTIONS
+   6. MODALS
    ============================================================ */
 
 function openModal(id) {
 
     const modal = getElement(id);
 
-    if (!modal) return;
+    if (!modal) {
+        console.warn(`Modal #${id} not found.`);
+        return;
+    }
 
     modal.classList.add("active");
     modal.classList.add("show");
+
     document.body.classList.add("modal-open");
 }
 
@@ -129,321 +138,10 @@ function closeModal(id) {
 
     modal.classList.remove("active");
     modal.classList.remove("show");
+
     document.body.classList.remove("modal-open");
 }
 
-
-/* Close modal when clicking outside */
-
-document.addEventListener("click", function (event) {
-
-    if (event.target.classList.contains("modal")) {
-
-        event.target.classList.remove("active");
-        event.target.classList.remove("show");
-
-        document.body.classList.remove("modal-open");
-    }
-
-});
-
-
-/* ============================================================
-   7. AUTHENTICATION
-   ============================================================ */
-
-async function getSession() {
-
-    const { data, error } = await supabaseClient.auth.getSession();
-
-    if (error) {
-
-        console.error(error);
-
-        return null;
-    }
-
-    return data.session;
-}
-
-
-/* ============================================================
-   LOAD USER PROFILE
-   ============================================================ */
-
-async function loadProfile(userId) {
-
-    const { data, error } = await supabaseClient
-        .from("profiles")
-        .select("*")
-        .eq("id", userId)
-        .maybeSingle();
-
-    if (error) {
-
-        console.error("Profile error:", error);
-
-        return null;
-    }
-
-    return data;
-}
-
-
-/* ============================================================
-   SIGN UP
-   ============================================================ */
-
-async function signup(event) {
-
-    event.preventDefault();
-
-    const form = event.target;
-
-    const fullName =
-        form.querySelector('[name="full_name"]')?.value.trim();
-
-    const email =
-        form.querySelector('[name="email"]')?.value.trim();
-
-    const password =
-        form.querySelector('[name="password"]')?.value;
-
-    const phone =
-        form.querySelector('[name="phone"]')?.value.trim();
-
-    const bloodGroup =
-        form.querySelector('[name="blood_group"]')?.value;
-
-    const location =
-        form.querySelector('[name="location"]')?.value.trim();
-
-    const role =
-        form.querySelector('[name="role"]')?.value || "donor";
-
-
-    if (!fullName || !email || !password) {
-
-        showToast("Please fill all required fields.", "error");
-
-        return;
-    }
-
-
-    if (password.length < 6) {
-
-        showToast(
-            "Password must be at least 6 characters.",
-            "error"
-        );
-
-        return;
-    }
-
-
-    const button =
-        form.querySelector('button[type="submit"]');
-
-    setLoading(button, true, "Creating account...");
-
-
-    try {
-
-        const { data, error } =
-            await supabaseClient.auth.signUp({
-
-                email: email,
-
-                password: password,
-
-                options: {
-
-                    data: {
-
-                        full_name: fullName,
-
-                        phone: phone,
-
-                        blood_group: bloodGroup,
-
-                        location: location,
-
-                        role: role || "donor"
-
-                    }
-                }
-            });
-
-
-        if (error) throw error;
-
-
-        if (data.user) {
-
-            showToast(
-                "Account created successfully!",
-                "success"
-            );
-
-            closeAllModals();
-
-            form.reset();
-
-            /*
-             Supabase may require email confirmation.
-            */
-
-            if (!data.session) {
-
-                showToast(
-                    "Please check your email to confirm your account.",
-                    "success"
-                );
-            }
-        }
-
-
-    } catch (error) {
-
-        console.error(error);
-
-        showToast(
-            error.message || "Unable to create account.",
-            "error"
-        );
-
-    } finally {
-
-        setLoading(button, false);
-    }
-}
-
-
-/* ============================================================
-   LOGIN
-   ============================================================ */
-
-async function login(event) {
-
-    event.preventDefault();
-
-    const form = event.target;
-
-    const email =
-        form.querySelector('[name="email"]')?.value.trim();
-
-    const password =
-        form.querySelector('[name="password"]')?.value;
-
-
-    if (!email || !password) {
-
-        showToast(
-            "Enter your email and password.",
-            "error"
-        );
-
-        return;
-    }
-
-
-    const button =
-        form.querySelector('button[type="submit"]');
-
-    setLoading(button, true, "Signing in...");
-
-
-    try {
-
-        const { data, error } =
-            await supabaseClient.auth.signInWithPassword({
-
-                email,
-
-                password
-
-            });
-
-
-        if (error) throw error;
-
-
-        state.user = data.user;
-
-        state.profile =
-            await loadProfile(data.user.id);
-
-
-        showToast(
-            "Welcome back!",
-            "success"
-        );
-
-
-        closeAllModals();
-
-        form.reset();
-
-        renderNavigation();
-
-
-    } catch (error) {
-
-        console.error(error);
-
-        showToast(
-            error.message || "Login failed.",
-            "error"
-        );
-
-    } finally {
-
-        setLoading(button, false);
-    }
-}
-
-
-/* ============================================================
-   LOGOUT
-   ============================================================ */
-
-async function logout() {
-
-    const { error } =
-        await supabaseClient.auth.signOut();
-
-
-    if (error) {
-
-        showToast(
-            error.message || "Logout failed.",
-            "error"
-        );
-
-        return;
-    }
-
-
-    state.user = null;
-
-    state.profile = null;
-
-
-    showToast(
-        "You have been logged out.",
-        "success"
-    );
-
-
-    renderNavigation();
-
-    closeAllModals();
-}
-
-
-/* ============================================================
-   CLOSE ALL MODALS
-   ============================================================ */
 
 function closeAllModals() {
 
@@ -458,79 +156,525 @@ function closeAllModals() {
 }
 
 
+/* Close modal when clicking outside */
+
+document.addEventListener("click", (event) => {
+
+    if (event.target.classList.contains("modal")) {
+
+        event.target.classList.remove("active");
+        event.target.classList.remove("show");
+
+        document.body.classList.remove("modal-open");
+    }
+
+});
+
+
 /* ============================================================
-   8. NAVIGATION
+   7. SESSION
    ============================================================ */
 
-function renderNavigation() {
+async function getSession() {
 
-    const loginButton =
-        getElement("loginBtn");
+    const {
+        data,
+        error
+    } = await supabaseClient.auth.getSession();
 
-    const donorButton =
-        getElement("becomeDonorBtn");
+    if (error) {
 
-    const dashboardButton =
-        getElement("dashboardBtn");
+        console.error(
+            "Session error:",
+            error
+        );
 
-    const adminButton =
-        getElement("adminBtn");
+        return null;
+    }
 
-    const logoutButton =
-        getElement("logoutBtn");
+    return data.session;
+}
 
 
-    if (!state.user) {
+/* ============================================================
+   8. PROFILE
+   ============================================================ */
 
-        if (loginButton)
-            loginButton.style.display = "";
+async function loadProfile(userId) {
 
-        if (donorButton)
-            donorButton.style.display = "";
+    if (!userId) return null;
 
-        if (dashboardButton)
-            dashboardButton.style.display = "none";
+    const {
+        data,
+        error
+    } = await supabaseClient
+        .from("profiles")
+        .select("*")
+        .eq("id", userId)
+        .maybeSingle();
 
-        if (adminButton)
-            adminButton.style.display = "none";
+    if (error) {
 
-        if (logoutButton)
-            logoutButton.style.display = "none";
+        console.error(
+            "Profile error:",
+            error
+        );
+
+        return null;
+    }
+
+    return data;
+}
+
+
+/* ============================================================
+   9. LOGIN
+   ============================================================ */
+
+async function login(event) {
+
+    event.preventDefault();
+
+    const form = event.target;
+
+    const email =
+        form.querySelector(
+            '[name="email"]'
+        )?.value.trim();
+
+    const password =
+        form.querySelector(
+            '[name="password"]'
+        )?.value;
+
+
+    if (!email || !password) {
+
+        showToast(
+            "Please enter email and password.",
+            "error"
+        );
 
         return;
     }
 
 
-    if (loginButton)
-        loginButton.style.display = "none";
+    const button =
+        form.querySelector(
+            'button[type="submit"]'
+        );
 
-    if (donorButton)
-        donorButton.style.display = "none";
-
-    if (dashboardButton)
-        dashboardButton.style.display = "";
-
-    if (logoutButton)
-        logoutButton.style.display = "";
+    setLoading(
+        button,
+        true,
+        "Signing in..."
+    );
 
 
-    if (
-        adminButton &&
-        state.profile &&
-        state.profile.role === "admin"
-    ) {
+    try {
 
-        adminButton.style.display = "";
+        const {
+            data,
+            error
+        } =
+            await supabaseClient.auth.signInWithPassword({
 
-    } else if (adminButton) {
+                email: email,
 
-        adminButton.style.display = "none";
+                password: password
+
+            });
+
+
+        if (error) throw error;
+
+
+        state.user =
+            data.user;
+
+
+        state.profile =
+            await loadProfile(
+                data.user.id
+            );
+
+
+        showToast(
+            "Login successful!",
+            "success"
+        );
+
+
+        closeAllModals();
+
+        form.reset();
+
+        renderNavigation();
+
+        await refreshPublicData();
+
+
+    } catch (error) {
+
+        console.error(error);
+
+        showToast(
+            error.message ||
+            "Login failed.",
+            "error"
+        );
+
+    } finally {
+
+        setLoading(
+            button,
+            false
+        );
     }
 }
 
 
 /* ============================================================
-   9. DONOR SEARCH
+   10. SIGN UP
+   ============================================================ */
+
+async function signup(event) {
+
+    event.preventDefault();
+
+    const form = event.target;
+
+
+    const fullName =
+        form.querySelector(
+            '[name="full_name"]'
+        )?.value.trim();
+
+    const email =
+        form.querySelector(
+            '[name="email"]'
+        )?.value.trim();
+
+    const password =
+        form.querySelector(
+            '[name="password"]'
+        )?.value;
+
+    const phone =
+        form.querySelector(
+            '[name="phone"]'
+        )?.value.trim();
+
+    const bloodGroup =
+        form.querySelector(
+            '[name="blood_group"]'
+        )?.value;
+
+    const location =
+        form.querySelector(
+            '[name="location"]'
+        )?.value.trim();
+
+    const role =
+        form.querySelector(
+            '[name="role"]'
+        )?.value || "donor";
+
+
+    if (
+        !fullName ||
+        !email ||
+        !password
+    ) {
+
+        showToast(
+            "Please fill all required fields.",
+            "error"
+        );
+
+        return;
+    }
+
+
+    if (password.length < 6) {
+
+        showToast(
+            "Password must contain at least 6 characters.",
+            "error"
+        );
+
+        return;
+    }
+
+
+    const button =
+        form.querySelector(
+            'button[type="submit"]'
+        );
+
+    setLoading(
+        button,
+        true,
+        "Creating account..."
+    );
+
+
+    try {
+
+        const {
+            data,
+            error
+        } =
+            await supabaseClient.auth.signUp({
+
+                email: email,
+
+                password: password,
+
+                options: {
+
+                    data: {
+
+                        full_name:
+                            fullName,
+
+                        phone:
+                            phone || null,
+
+                        blood_group:
+                            bloodGroup || null,
+
+                        location:
+                            location || null,
+
+                        role:
+                            role
+
+                    }
+                }
+
+            });
+
+
+        if (error) throw error;
+
+
+        if (!data.user) {
+
+            throw new Error(
+                "Account could not be created."
+            );
+        }
+
+
+        form.reset();
+
+        closeAllModals();
+
+
+        if (data.session) {
+
+            state.user =
+                data.user;
+
+            state.profile =
+                await loadProfile(
+                    data.user.id
+                );
+
+            renderNavigation();
+
+            showToast(
+                "Account created successfully!",
+                "success"
+            );
+
+        } else {
+
+            showToast(
+                "Account created. Please check your email and confirm your account.",
+                "success"
+            );
+        }
+
+
+    } catch (error) {
+
+        console.error(error);
+
+        showToast(
+            error.message ||
+            "Unable to create account.",
+            "error"
+        );
+
+    } finally {
+
+        setLoading(
+            button,
+            false
+        );
+    }
+}
+
+
+/* ============================================================
+   11. LOGOUT
+   ============================================================ */
+
+async function logout() {
+
+    try {
+
+        const {
+            error
+        } =
+            await supabaseClient.auth.signOut();
+
+
+        if (error) throw error;
+
+
+        state.user = null;
+
+        state.profile = null;
+
+
+        renderNavigation();
+
+        showToast(
+            "You have been logged out.",
+            "success"
+        );
+
+
+        await refreshPublicData();
+
+
+    } catch (error) {
+
+        console.error(error);
+
+        showToast(
+            error.message ||
+            "Logout failed.",
+            "error"
+        );
+    }
+}
+
+
+/* ============================================================
+   12. NAVIGATION
+   ============================================================ */
+
+function renderNavigation() {
+
+    const loginBtn =
+        getElement("loginBtn");
+
+    const donorBtn =
+        getElement("becomeDonorBtn");
+
+    const dashboardBtn =
+        getElement("dashboardBtn");
+
+    const adminBtn =
+        getElement("adminBtn");
+
+    const logoutBtn =
+        getElement("logoutBtn");
+
+
+    if (!state.user) {
+
+        if (loginBtn)
+            loginBtn.style.display = "";
+
+        if (donorBtn)
+            donorBtn.style.display = "";
+
+        if (dashboardBtn)
+            dashboardBtn.style.display = "none";
+
+        if (adminBtn)
+            adminBtn.style.display = "none";
+
+        if (logoutBtn)
+            logoutBtn.style.display = "none";
+
+        return;
+    }
+
+
+    if (loginBtn)
+        loginBtn.style.display = "none";
+
+    if (donorBtn)
+        donorBtn.style.display = "none";
+
+    if (dashboardBtn)
+        dashboardBtn.style.display = "";
+
+    if (logoutBtn)
+        logoutBtn.style.display = "";
+
+
+    if (
+        adminBtn &&
+        state.profile &&
+        state.profile.role === "admin"
+    ) {
+
+        adminBtn.style.display = "";
+
+    } else if (adminBtn) {
+
+        adminBtn.style.display = "none";
+    }
+}
+
+
+/* ============================================================
+   13. ADMIN REDIRECT
+   ============================================================ */
+
+function openAdminDashboard() {
+
+    if (!state.user) {
+
+        showToast(
+            "Please login first.",
+            "error"
+        );
+
+        openModal("authModal");
+
+        return;
+    }
+
+
+    if (
+        !state.profile ||
+        state.profile.role !== "admin"
+    ) {
+
+        showToast(
+            "Admin access required.",
+            "error"
+        );
+
+        return;
+    }
+
+
+    window.location.href =
+        "admin.html";
+}
+
+
+/* ============================================================
+   14. DONOR SEARCH
    ============================================================ */
 
 async function loadDonors() {
@@ -538,6 +682,7 @@ async function loadDonors() {
     const container =
         getElement("donorGrid") ||
         getElement("donorsContainer");
+
 
     if (!container) return;
 
@@ -551,28 +696,37 @@ async function loadDonors() {
 
 
     const bloodGroup =
-        getElement("searchBloodGroup")?.value || "";
+        getElement(
+            "searchBloodGroup"
+        )?.value || "";
+
 
     const location =
-        getElement("searchLocation")?.value.trim() || "";
+        getElement(
+            "searchLocation"
+        )?.value.trim() || "";
 
 
     try {
 
-        let query = supabaseClient
-            .from("profiles")
-            .select("*")
-            .eq("role", "donor")
-            .eq("is_available", true)
-            .order("created_at", {
-                ascending: false
-            });
+        let query =
+            supabaseClient
+                .from("profiles")
+                .select("*")
+                .eq("role", "donor")
+                .eq("is_available", true)
+                .order("created_at", {
+                    ascending: false
+                });
 
 
         if (bloodGroup) {
 
             query =
-                query.eq("blood_group", bloodGroup);
+                query.eq(
+                    "blood_group",
+                    bloodGroup
+                );
         }
 
 
@@ -586,17 +740,23 @@ async function loadDonors() {
         }
 
 
-        const { data, error } =
+        const {
+            data,
+            error
+        } =
             await query;
 
 
         if (error) throw error;
 
 
-        state.donors = data || [];
+        state.donors =
+            data || [];
 
 
-        renderDonors(state.donors);
+        renderDonors(
+            state.donors
+        );
 
 
     } catch (error) {
@@ -605,8 +765,15 @@ async function loadDonors() {
 
         container.innerHTML = `
             <div class="empty-state">
-                <h3>Unable to load donors</h3>
-                <p>Please try again later.</p>
+
+                <h3>
+                    Unable to load donors
+                </h3>
+
+                <p>
+                    Please check your Supabase setup and try again.
+                </p>
+
             </div>
         `;
     }
@@ -614,7 +781,7 @@ async function loadDonors() {
 
 
 /* ============================================================
-   RENDER DONORS
+   15. RENDER DONORS
    ============================================================ */
 
 function renderDonors(donors) {
@@ -623,88 +790,105 @@ function renderDonors(donors) {
         getElement("donorGrid") ||
         getElement("donorsContainer");
 
+
     if (!container) return;
 
 
     if (!donors.length) {
 
         container.innerHTML = `
-            <div class="empty-state">
-                <div class="empty-icon">🩸</div>
 
-                <h3>No available donors found</h3>
+            <div class="empty-state">
+
+                <div class="empty-icon">
+                    🩸
+                </div>
+
+                <h3>
+                    No available donors found
+                </h3>
 
                 <p>
                     Try another blood group or location.
                 </p>
+
             </div>
+
         `;
 
         return;
     }
 
 
-    container.innerHTML = donors.map(donor => {
+    container.innerHTML =
+        donors.map(donor => {
 
-        const name =
-            escapeHTML(
-                donor.full_name || "Anonymous Donor"
-            );
+            const name =
+                escapeHTML(
+                    donor.full_name ||
+                    "Blood Donor"
+                );
 
-        const blood =
-            escapeHTML(
-                donor.blood_group || "—"
-            );
+            const blood =
+                escapeHTML(
+                    donor.blood_group ||
+                    "—"
+                );
 
-        const location =
-            escapeHTML(
-                donor.location || "Location not provided"
-            );
+            const location =
+                escapeHTML(
+                    donor.location ||
+                    "Location not provided"
+                );
 
 
-        return `
+            return `
 
-            <article class="donor-card">
+                <article class="donor-card">
 
-                <div class="donor-avatar">
-                    ${getInitials(name)}
-                </div>
+                    <div class="donor-avatar">
+                        ${getInitials(name)}
+                    </div>
 
-                <div class="donor-info">
 
-                    <h3>${name}</h3>
+                    <div class="donor-info">
 
-                    <span class="blood-badge">
-                        ${blood}
-                    </span>
+                        <h3>
+                            ${name}
+                        </h3>
 
-                    <p class="donor-location">
-                        📍 ${location}
-                    </p>
+                        <span class="blood-badge">
+                            ${blood}
+                        </span>
 
-                    <span class="available-badge">
-                        ● Available
-                    </span>
+                        <p class="donor-location">
+                            📍 ${location}
+                        </p>
 
-                </div>
+                        <span class="available-badge">
+                            ● Available
+                        </span>
 
-                <button
-                    class="btn btn-primary"
-                    onclick="contactDonor('${donor.id}')"
-                >
-                    Contact
-                </button>
+                    </div>
 
-            </article>
 
-        `;
+                    <button
+                        class="btn btn-primary"
+                        onclick="contactDonor('${donor.id}')"
+                    >
+                        Contact
+                    </button>
 
-    }).join("");
+                </article>
+
+            `;
+
+        }).join("");
 }
 
 
 /* ============================================================
-   DONOR CONTACT
+   16. CONTACT DONOR
    ============================================================ */
 
 async function contactDonor(donorId) {
@@ -724,14 +908,15 @@ async function contactDonor(donorId) {
 
     const donor =
         state.donors.find(
-            item => item.id === donorId
+            item =>
+                item.id === donorId
         );
 
 
     if (!donor) {
 
         showToast(
-            "Donor information not found.",
+            "Donor not found.",
             "error"
         );
 
@@ -739,41 +924,36 @@ async function contactDonor(donorId) {
     }
 
 
-    const phone =
-        donor.phone;
-
-
-    if (!phone) {
+    if (!donor.phone) {
 
         showToast(
-            "This donor has not provided a phone number.",
+            "This donor has not added a phone number.",
             "error"
         );
 
         return;
     }
-
-
-    const cleanPhone =
-        phone.replace(/\s+/g, "");
 
 
     const confirmed =
         confirm(
-            `Contact ${donor.full_name || "this donor"} at ${phone}?`
+            `Contact ${donor.full_name || "this donor"} at ${donor.phone}?`
         );
 
 
-    if (confirmed) {
+    if (!confirmed) return;
 
-        window.location.href =
-            `tel:${cleanPhone}`;
-    }
+
+    window.location.href =
+        `tel:${donor.phone.replace(
+            /\s+/g,
+            ""
+        )}`;
 }
 
 
 /* ============================================================
-   10. BLOOD REQUESTS
+   17. BLOOD REQUESTS
    ============================================================ */
 
 async function loadRequests() {
@@ -782,39 +962,46 @@ async function loadRequests() {
         getElement("requestGrid") ||
         getElement("requestsContainer");
 
+
     if (!container) return;
 
 
     container.innerHTML = `
         <div class="loading-state">
+
             <span class="spinner"></span>
+
             Loading blood requests...
+
         </div>
     `;
 
 
     try {
 
-        const { data, error } =
+        const {
+            data,
+            error
+        } =
             await supabaseClient
                 .from("blood_requests")
                 .select("*")
                 .eq("status", "verified")
-                .order("priority", {
+                .order("created_at", {
                     ascending: false
-                })
-                .order("required_date", {
-                    ascending: true
                 });
 
 
         if (error) throw error;
 
 
-        state.requests = data || [];
+        state.requests =
+            data || [];
 
 
-        renderRequests(state.requests);
+        renderRequests(
+            state.requests
+        );
 
 
     } catch (error) {
@@ -823,8 +1010,15 @@ async function loadRequests() {
 
         container.innerHTML = `
             <div class="empty-state">
-                <h3>Unable to load requests</h3>
-                <p>Please try again later.</p>
+
+                <h3>
+                    Unable to load requests
+                </h3>
+
+                <p>
+                    Please try again later.
+                </p>
+
             </div>
         `;
     }
@@ -832,7 +1026,7 @@ async function loadRequests() {
 
 
 /* ============================================================
-   RENDER REQUESTS
+   18. RENDER REQUESTS
    ============================================================ */
 
 function renderRequests(requests) {
@@ -841,23 +1035,30 @@ function renderRequests(requests) {
         getElement("requestGrid") ||
         getElement("requestsContainer");
 
+
     if (!container) return;
 
 
     if (!requests.length) {
 
         container.innerHTML = `
+
             <div class="empty-state">
 
-                <div class="empty-icon">❤️</div>
+                <div class="empty-icon">
+                    ❤️
+                </div>
 
-                <h3>No verified blood requests</h3>
+                <h3>
+                    No verified blood requests
+                </h3>
 
                 <p>
                     There are currently no active verified requests.
                 </p>
 
             </div>
+
         `;
 
         return;
@@ -869,35 +1070,44 @@ function renderRequests(requests) {
 
             const patient =
                 escapeHTML(
-                    request.patient_name || "Patient"
-                );
-
-            const hospital =
-                escapeHTML(
-                    request.hospital || "Hospital not provided"
-                );
-
-            const location =
-                escapeHTML(
-                    request.location || "Location not provided"
+                    request.patient_name ||
+                    "Patient"
                 );
 
             const blood =
                 escapeHTML(
-                    request.blood_group || "—"
+                    request.blood_group ||
+                    "—"
+                );
+
+            const hospital =
+                escapeHTML(
+                    request.hospital ||
+                    "Hospital not provided"
+                );
+
+            const location =
+                escapeHTML(
+                    request.location ||
+                    "Location not provided"
                 );
 
             const units =
-                request.units_required || 1;
+                Number(
+                    request.units_required || 1
+                );
 
             const priority =
                 escapeHTML(
-                    request.priority || "normal"
+                    request.priority ||
+                    "normal"
                 );
 
             const date =
                 request.required_date
-                    ? formatDate(request.required_date)
+                    ? formatDate(
+                        request.required_date
+                    )
                     : "As soon as possible";
 
 
@@ -934,7 +1144,8 @@ function renderRequests(requests) {
                         </p>
 
                         <p>
-                            🩸 ${units} unit${units > 1 ? "s" : ""}
+                            🩸 ${units}
+                            unit${units !== 1 ? "s" : ""}
                         </p>
 
                         <p>
@@ -944,29 +1155,16 @@ function renderRequests(requests) {
                     </div>
 
 
-                    ${
-                        state.user &&
-                        state.profile &&
-                        state.profile.role === "donor"
-                        ?
-                        `
-                        <button
-                            class="btn btn-primary full-width"
-                            onclick="respondToRequest('${request.id}')"
-                        >
-                            I Can Donate
-                        </button>
-                        `
-                        :
-                        `
-                        <button
-                            class="btn btn-primary full-width"
-                            onclick="requireLogin()"
-                        >
-                            Login to Respond
-                        </button>
-                        `
-                    }
+                    <button
+                        class="btn btn-primary full-width"
+                        onclick="respondToRequest('${request.id}')"
+                    >
+                        ${
+                            state.user
+                                ? "I Can Donate"
+                                : "Login to Respond"
+                        }
+                    </button>
 
                 </article>
 
@@ -977,7 +1175,7 @@ function renderRequests(requests) {
 
 
 /* ============================================================
-   11. CREATE BLOOD REQUEST
+   19. OPEN REQUEST MODAL
    ============================================================ */
 
 function openRequestModal() {
@@ -995,12 +1193,14 @@ function openRequestModal() {
     }
 
 
-    openModal("requestModal");
+    openModal(
+        "requestModal"
+    );
 }
 
 
 /* ============================================================
-   SUBMIT BLOOD REQUEST
+   20. SUBMIT BLOOD REQUEST
    ============================================================ */
 
 async function submitBloodRequest(event) {
@@ -1019,35 +1219,58 @@ async function submitBloodRequest(event) {
     }
 
 
-    const form = event.target;
+    const form =
+        event.target;
 
 
     const patientName =
-        form.querySelector('[name="patient_name"]')?.value.trim();
+        form.querySelector(
+            '[name="patient_name"]'
+        )?.value.trim();
+
 
     const bloodGroup =
-        form.querySelector('[name="blood_group"]')?.value;
+        form.querySelector(
+            '[name="blood_group"]'
+        )?.value;
+
 
     const units =
-        parseInt(
-            form.querySelector('[name="units_required"]')?.value || "1",
-            10
+        Number(
+            form.querySelector(
+                '[name="units_required"]'
+            )?.value || 1
         );
 
+
     const hospital =
-        form.querySelector('[name="hospital"]')?.value.trim();
+        form.querySelector(
+            '[name="hospital"]'
+        )?.value.trim();
+
 
     const location =
-        form.querySelector('[name="location"]')?.value.trim();
+        form.querySelector(
+            '[name="location"]'
+        )?.value.trim();
+
 
     const requiredDate =
-        form.querySelector('[name="required_date"]')?.value || null;
+        form.querySelector(
+            '[name="required_date"]'
+        )?.value || null;
+
 
     const priority =
-        form.querySelector('[name="priority"]')?.value || "normal";
+        form.querySelector(
+            '[name="priority"]'
+        )?.value || "normal";
+
 
     const notes =
-        form.querySelector('[name="notes"]')?.value.trim();
+        form.querySelector(
+            '[name="notes"]'
+        )?.value.trim();
 
 
     if (
@@ -1066,42 +1289,71 @@ async function submitBloodRequest(event) {
     }
 
 
+    if (
+        !Number.isFinite(units) ||
+        units <= 0
+    ) {
+
+        showToast(
+            "Please enter a valid number of units.",
+            "error"
+        );
+
+        return;
+    }
+
+
     const button =
-        form.querySelector('button[type="submit"]');
+        form.querySelector(
+            'button[type="submit"]'
+        );
+
 
     setLoading(
         button,
         true,
-        "Submitting request..."
+        "Submitting..."
     );
 
 
     try {
 
-        const { error } =
+        const {
+            error
+        } =
             await supabaseClient
                 .from("blood_requests")
                 .insert({
 
-                    requester_id: state.user.id,
+                    requester_id:
+                        state.user.id,
 
-                    patient_name: patientName,
+                    patient_name:
+                        patientName,
 
-                    blood_group: bloodGroup,
+                    blood_group:
+                        bloodGroup,
 
-                    units_required: units,
+                    units_required:
+                        units,
 
-                    hospital: hospital,
+                    hospital:
+                        hospital,
 
-                    location: location,
+                    location:
+                        location,
 
-                    required_date: requiredDate,
+                    required_date:
+                        requiredDate,
 
-                    notes: notes,
+                    notes:
+                        notes || null,
 
-                    priority: priority,
+                    priority:
+                        priority,
 
-                    status: "pending"
+                    status:
+                        "pending"
 
                 });
 
@@ -1110,15 +1362,21 @@ async function submitBloodRequest(event) {
 
 
         showToast(
-            "Blood request submitted for verification.",
+            "Request submitted successfully. It is waiting for admin verification.",
             "success"
         );
 
 
-        closeModal("requestModal");
-
         form.reset();
 
+        closeModal(
+            "requestModal"
+        );
+
+
+        /*
+          Refresh request list.
+        */
 
         await loadRequests();
 
@@ -1128,26 +1386,39 @@ async function submitBloodRequest(event) {
         console.error(error);
 
         showToast(
-            error.message || "Unable to submit request.",
+            error.message ||
+            "Unable to submit request.",
             "error"
         );
 
     } finally {
 
-        setLoading(button, false);
+        setLoading(
+            button,
+            false
+        );
     }
 }
 
 
 /* ============================================================
-   12. DONOR RESPONSE
+   21. DONOR RESPONSE
    ============================================================ */
 
-async function respondToRequest(requestId) {
+async function respondToRequest(
+    requestId
+) {
 
     if (!state.user) {
 
-        requireLogin();
+        showToast(
+            "Please login to respond to a blood request.",
+            "error"
+        );
+
+        openModal(
+            "authModal"
+        );
 
         return;
     }
@@ -1159,7 +1430,7 @@ async function respondToRequest(requestId) {
     ) {
 
         showToast(
-            "Only registered donors can respond.",
+            "Only registered donors can respond to blood requests.",
             "error"
         );
 
@@ -1169,16 +1440,21 @@ async function respondToRequest(requestId) {
 
     try {
 
-        const { error } =
+        const {
+            error
+        } =
             await supabaseClient
                 .from("request_responses")
                 .insert({
 
-                    request_id: requestId,
+                    request_id:
+                        requestId,
 
-                    donor_id: state.user.id,
+                    donor_id:
+                        state.user.id,
 
-                    status: "interested"
+                    status:
+                        "interested"
 
                 });
 
@@ -1186,7 +1462,8 @@ async function respondToRequest(requestId) {
         if (error) {
 
             if (
-                error.code === "23505"
+                error.code ===
+                "23505"
             ) {
 
                 showToast(
@@ -1202,7 +1479,7 @@ async function respondToRequest(requestId) {
 
 
         showToast(
-            "Thank you! The request owner can now see that you can donate.",
+            "Thank you for volunteering! The request can now be followed up with you.",
             "success"
         );
 
@@ -1212,7 +1489,8 @@ async function respondToRequest(requestId) {
         console.error(error);
 
         showToast(
-            error.message || "Unable to respond.",
+            error.message ||
+            "Unable to submit your response.",
             "error"
         );
     }
@@ -1220,95 +1498,130 @@ async function respondToRequest(requestId) {
 
 
 /* ============================================================
-   13. USER DASHBOARD
+   22. DASHBOARD
    ============================================================ */
 
 async function openDashboard() {
 
     if (!state.user) {
 
-        requireLogin();
+        showToast(
+            "Please login first.",
+            "error"
+        );
+
+        openModal(
+            "authModal"
+        );
 
         return;
     }
 
 
-    openModal("dashboardModal");
+    openModal(
+        "dashboardModal"
+    );
+
 
     await loadDashboard();
 }
 
 
 /* ============================================================
-   LOAD DASHBOARD
+   23. LOAD DASHBOARD
    ============================================================ */
 
 async function loadDashboard() {
 
     const container =
-        getElement("dashboardContent");
+        getElement(
+            "dashboardContent"
+        );
+
 
     if (!container) return;
 
 
     container.innerHTML = `
         <div class="loading-state">
+
             <span class="spinner"></span>
+
             Loading dashboard...
+
         </div>
     `;
 
 
     try {
 
-        const profile =
-            state.profile ||
-            await loadProfile(state.user.id);
-
-
-        state.profile = profile;
+        state.profile =
+            await loadProfile(
+                state.user.id
+            );
 
 
         const [
             donationsResult,
             requestsResult
-        ] = await Promise.all([
+        ] =
+            await Promise.all([
 
-            supabaseClient
-                .from("donations")
-                .select("*")
-                .eq("donor_id", state.user.id)
-                .order("donation_date", {
-                    ascending: false
-                }),
+                supabaseClient
+                    .from("donations")
+                    .select("*")
+                    .eq(
+                        "donor_id",
+                        state.user.id
+                    )
+                    .order(
+                        "donation_date",
+                        {
+                            ascending: false
+                        }
+                    ),
 
-            supabaseClient
-                .from("blood_requests")
-                .select("*")
-                .eq("requester_id", state.user.id)
-                .order("created_at", {
-                    ascending: false
-                })
+                supabaseClient
+                    .from("blood_requests")
+                    .select("*")
+                    .eq(
+                        "requester_id",
+                        state.user.id
+                    )
+                    .order(
+                        "created_at",
+                        {
+                            ascending: false
+                        }
+                    )
 
-        ]);
+            ]);
 
 
-        if (donationsResult.error)
+        if (
+            donationsResult.error
+        ) {
             throw donationsResult.error;
+        }
 
-        if (requestsResult.error)
+
+        if (
+            requestsResult.error
+        ) {
             throw requestsResult.error;
+        }
 
 
         const donations =
             donationsResult.data || [];
+
 
         const requests =
             requestsResult.data || [];
 
 
         renderDashboard(
-            profile,
+            state.profile,
             donations,
             requests
         );
@@ -1319,17 +1632,28 @@ async function loadDashboard() {
         console.error(error);
 
         container.innerHTML = `
+
             <div class="empty-state">
-                <h3>Unable to load dashboard</h3>
-                <p>${escapeHTML(error.message)}</p>
+
+                <h3>
+                    Unable to load dashboard
+                </h3>
+
+                <p>
+                    ${escapeHTML(
+                        error.message
+                    )}
+                </p>
+
             </div>
+
         `;
     }
 }
 
 
 /* ============================================================
-   RENDER DASHBOARD
+   24. RENDER DASHBOARD
    ============================================================ */
 
 function renderDashboard(
@@ -1339,21 +1663,23 @@ function renderDashboard(
 ) {
 
     const container =
-        getElement("dashboardContent");
+        getElement(
+            "dashboardContent"
+        );
+
 
     if (!container) return;
 
 
     const totalUnits =
         donations.reduce(
-            (sum, item) =>
-                sum + Number(item.units || 0),
+            (total, donation) =>
+                total +
+                Number(
+                    donation.units || 0
+                ),
             0
         );
-
-
-    const available =
-        profile?.is_available;
 
 
     container.innerHTML = `
@@ -1363,8 +1689,10 @@ function renderDashboard(
             <div>
 
                 <h2>
-                    Welcome, ${escapeHTML(
-                        profile?.full_name || "User"
+                    Welcome,
+                    ${escapeHTML(
+                        profile?.full_name ||
+                        "User"
                     )}
                 </h2>
 
@@ -1429,7 +1757,11 @@ function renderDashboard(
                 <span>🟢</span>
 
                 <strong>
-                    ${available ? "YES" : "NO"}
+                    ${
+                        profile?.is_available
+                            ? "YES"
+                            : "NO"
+                    }
                 </strong>
 
                 <small>
@@ -1445,16 +1777,19 @@ function renderDashboard(
             profile?.role === "donor"
             ?
             `
+
             <div class="dashboard-section">
 
                 <div class="section-header">
 
                     <div>
 
-                        <h3>Donor Availability</h3>
+                        <h3>
+                            Donor Availability
+                        </h3>
 
                         <p>
-                            Let people know if you are currently available to donate.
+                            Let people know whether you are currently available.
                         </p>
 
                     </div>
@@ -1465,7 +1800,11 @@ function renderDashboard(
                         <input
                             type="checkbox"
                             id="availabilityToggle"
-                            ${available ? "checked" : ""}
+                            ${
+                                profile.is_available
+                                    ? "checked"
+                                    : ""
+                            }
                             onchange="toggleAvailability(this.checked)"
                         >
 
@@ -1476,6 +1815,7 @@ function renderDashboard(
                 </div>
 
             </div>
+
             `
             :
             ""
@@ -1486,19 +1826,23 @@ function renderDashboard(
             profile?.role === "donor"
             ?
             `
+
             <div class="dashboard-section">
 
                 <div class="section-header">
 
                     <div>
 
-                        <h3>Donation History</h3>
+                        <h3>
+                            Donation History
+                        </h3>
 
                         <p>
-                            Keep track of your blood donations.
+                            Keep track of your previous donations.
                         </p>
 
                     </div>
+
 
                     <button
                         class="btn btn-primary"
@@ -1510,9 +1854,14 @@ function renderDashboard(
                 </div>
 
 
-                ${renderDonationHistory(donations)}
+                ${
+                    renderDonationHistory(
+                        donations
+                    )
+                }
 
             </div>
+
             `
             :
             ""
@@ -1525,10 +1874,12 @@ function renderDashboard(
 
                 <div>
 
-                    <h3>My Blood Requests</h3>
+                    <h3>
+                        My Blood Requests
+                    </h3>
 
                     <p>
-                        Track requests submitted by you.
+                        Track the requests submitted by you.
                     </p>
 
                 </div>
@@ -1544,7 +1895,11 @@ function renderDashboard(
             </div>
 
 
-            ${renderMyRequests(requests)}
+            ${
+                renderMyRequests(
+                    requests
+                )
+            }
 
         </div>
 
@@ -1553,14 +1908,17 @@ function renderDashboard(
 
 
 /* ============================================================
-   DONATION HISTORY
+   25. DONATION HISTORY
    ============================================================ */
 
-function renderDonationHistory(donations) {
+function renderDonationHistory(
+    donations
+) {
 
     if (!donations.length) {
 
         return `
+
             <div class="empty-state compact">
 
                 <p>
@@ -1568,6 +1926,7 @@ function renderDonationHistory(donations) {
                 </p>
 
             </div>
+
         `;
     }
 
@@ -1582,11 +1941,17 @@ function renderDonationHistory(donations) {
 
                     <tr>
 
-                        <th>Date</th>
+                        <th>
+                            Date
+                        </th>
 
-                        <th>Units</th>
+                        <th>
+                            Units
+                        </th>
 
-                        <th>Notes</th>
+                        <th>
+                            Notes
+                        </th>
 
                     </tr>
 
@@ -1595,27 +1960,36 @@ function renderDonationHistory(donations) {
 
                 <tbody>
 
-                    ${donations.map(item => `
+                    ${
+                        donations.map(
+                            donation => `
 
-                        <tr>
+                            <tr>
 
-                            <td>
-                                ${formatDate(item.donation_date)}
-                            </td>
+                                <td>
+                                    ${formatDate(
+                                        donation.donation_date
+                                    )}
+                                </td>
 
-                            <td>
-                                ${item.units || 1}
-                            </td>
+                                <td>
+                                    ${Number(
+                                        donation.units || 1
+                                    )}
+                                </td>
 
-                            <td>
-                                ${escapeHTML(
-                                    item.notes || "—"
-                                )}
-                            </td>
+                                <td>
+                                    ${escapeHTML(
+                                        donation.notes ||
+                                        "—"
+                                    )}
+                                </td>
 
-                        </tr>
+                            </tr>
 
-                    `).join("")}
+                        `
+                        ).join("")
+                    }
 
                 </tbody>
 
@@ -1628,14 +2002,17 @@ function renderDonationHistory(donations) {
 
 
 /* ============================================================
-   MY REQUESTS
+   26. MY REQUESTS
    ============================================================ */
 
-function renderMyRequests(requests) {
+function renderMyRequests(
+    requests
+) {
 
     if (!requests.length) {
 
         return `
+
             <div class="empty-state compact">
 
                 <p>
@@ -1643,6 +2020,7 @@ function renderMyRequests(requests) {
                 </p>
 
             </div>
+
         `;
     }
 
@@ -1651,48 +2029,68 @@ function renderMyRequests(requests) {
 
         <div class="request-list">
 
-            ${requests.map(request => `
+            ${
+                requests.map(
+                    request => `
 
-                <div class="my-request-item">
+                    <div class="my-request-item">
 
-                    <div>
+                        <div>
 
-                        <strong>
-                            ${escapeHTML(
-                                request.patient_name || "Patient"
-                            )}
-                        </strong>
+                            <strong>
+                                ${escapeHTML(
+                                    request.patient_name ||
+                                    "Patient"
+                                )}
+                            </strong>
 
-                        <span class="blood-badge">
-                            ${escapeHTML(
-                                request.blood_group
-                            )}
-                        </span>
+                            <span class="blood-badge">
+                                ${escapeHTML(
+                                    request.blood_group ||
+                                    "—"
+                                )}
+                            </span>
 
-                        <p>
-                            ${escapeHTML(
-                                request.hospital || ""
-                            )}
-                        </p>
+                            <p>
+                                ${escapeHTML(
+                                    request.hospital ||
+                                    ""
+                                )}
+                            </p>
+
+                        </div>
+
+
+                        <div class="request-status">
+
+                            <span class="status-badge ${
+                                escapeHTML(
+                                    request.status ||
+                                    ""
+                                )
+                            }">
+
+                                ${capitalize(
+                                    request.status ||
+                                    "unknown"
+                                )}
+
+                            </span>
+
+
+                            <small>
+                                ${formatDate(
+                                    request.created_at
+                                )}
+                            </small>
+
+                        </div>
 
                     </div>
 
-
-                    <div class="request-status">
-
-                        <span class="status-badge ${request.status}">
-                            ${capitalize(request.status)}
-                        </span>
-
-                        <small>
-                            ${formatDate(request.created_at)}
-                        </small>
-
-                    </div>
-
-                </div>
-
-            `).join("")}
+                `
+                ).join("")
+            }
 
         </div>
 
@@ -1701,23 +2099,31 @@ function renderMyRequests(requests) {
 
 
 /* ============================================================
-   TOGGLE DONOR AVAILABILITY
+   27. TOGGLE AVAILABILITY
    ============================================================ */
 
-async function toggleAvailability(value) {
+async function toggleAvailability(
+    value
+) {
 
     if (!state.user) return;
 
 
     try {
 
-        const { error } =
+        const {
+            error
+        } =
             await supabaseClient
                 .from("profiles")
                 .update({
-                    is_available: value
+                    is_available:
+                        Boolean(value)
                 })
-                .eq("id", state.user.id);
+                .eq(
+                    "id",
+                    state.user.id
+                );
 
 
         if (error) throw error;
@@ -1725,14 +2131,15 @@ async function toggleAvailability(value) {
 
         if (state.profile) {
 
-            state.profile.is_available = value;
+            state.profile.is_available =
+                Boolean(value);
         }
 
 
         showToast(
             value
-                ? "You are now marked as available."
-                : "You are now marked as unavailable.",
+                ? "You are now available for blood donation."
+                : "You are now unavailable.",
             "success"
         );
 
@@ -1745,7 +2152,8 @@ async function toggleAvailability(value) {
         console.error(error);
 
         showToast(
-            error.message || "Unable to update availability.",
+            error.message ||
+            "Unable to update availability.",
             "error"
         );
     }
@@ -1753,7 +2161,7 @@ async function toggleAvailability(value) {
 
 
 /* ============================================================
-   ADD DONATION
+   28. ADD DONATION
    ============================================================ */
 
 async function addDonation() {
@@ -1775,6 +2183,25 @@ async function addDonation() {
     if (!date) return;
 
 
+    const parsedDate =
+        new Date(date);
+
+
+    if (
+        Number.isNaN(
+            parsedDate.getTime()
+        )
+    ) {
+
+        showToast(
+            "Please enter a valid date.",
+            "error"
+        );
+
+        return;
+    }
+
+
     const unitsInput =
         prompt(
             "How many units did you donate?",
@@ -1789,7 +2216,10 @@ async function addDonation() {
         Number(unitsInput);
 
 
-    if (!Number.isFinite(units) || units <= 0) {
+    if (
+        !Number.isFinite(units) ||
+        units <= 0
+    ) {
 
         showToast(
             "Please enter a valid number of units.",
@@ -1802,24 +2232,30 @@ async function addDonation() {
 
     const notes =
         prompt(
-            "Any notes? (Optional)"
+            "Any notes? Optional."
         );
 
 
     try {
 
-        const { error } =
+        const {
+            error
+        } =
             await supabaseClient
                 .from("donations")
                 .insert({
 
-                    donor_id: state.user.id,
+                    donor_id:
+                        state.user.id,
 
-                    donation_date: date,
+                    donation_date:
+                        date,
 
-                    units: units,
+                    units:
+                        units,
 
-                    notes: notes || null
+                    notes:
+                        notes || null
 
                 });
 
@@ -1841,7 +2277,8 @@ async function addDonation() {
         console.error(error);
 
         showToast(
-            error.message || "Unable to add donation.",
+            error.message ||
+            "Unable to add donation.",
             "error"
         );
     }
@@ -1849,1087 +2286,7 @@ async function addDonation() {
 
 
 /* ============================================================
-   14. ADMIN DASHBOARD
-   ============================================================ */
-
-async function openAdminDashboard() {
-
-    if (!state.user) {
-
-        requireLogin();
-
-        return;
-    }
-
-
-    if (
-        !state.profile ||
-        state.profile.role !== "admin"
-    ) {
-
-        showToast(
-            "Admin access required.",
-            "error"
-        );
-
-        return;
-    }
-
-
-    openModal("adminModal");
-
-    await loadAdminDashboard();
-}
-
-
-/* ============================================================
-   LOAD ADMIN DASHBOARD
-   ============================================================ */
-
-async function loadAdminDashboard() {
-
-    const container =
-        getElement("adminContent");
-
-    if (!container) return;
-
-
-    container.innerHTML = `
-        <div class="loading-state">
-            <span class="spinner"></span>
-            Loading admin dashboard...
-        </div>
-    `;
-
-
-    try {
-
-        const [
-            donorsResult,
-            pendingResult,
-            requestsResult,
-            responsesResult
-        ] = await Promise.all([
-
-            supabaseClient
-                .from("profiles")
-                .select("id", {
-                    count: "exact",
-                    head: true
-                })
-                .eq("role", "donor"),
-
-            supabaseClient
-                .from("blood_requests")
-                .select("id", {
-                    count: "exact",
-                    head: true
-                })
-                .eq("status", "pending"),
-
-            supabaseClient
-                .from("blood_requests")
-                .select("id", {
-                    count: "exact",
-                    head: true
-                }),
-
-            supabaseClient
-                .from("request_responses")
-                .select("id", {
-                    count: "exact",
-                    head: true
-                })
-
-        ]);
-
-
-        renderAdminDashboard({
-
-            donors:
-                donorsResult.count || 0,
-
-            pending:
-                pendingResult.count || 0,
-
-            requests:
-                requestsResult.count || 0,
-
-            responses:
-                responsesResult.count || 0
-
-        });
-
-
-    } catch (error) {
-
-        console.error(error);
-
-        container.innerHTML = `
-            <div class="empty-state">
-
-                <h3>
-                    Unable to load admin dashboard
-                </h3>
-
-                <p>
-                    ${escapeHTML(error.message)}
-                </p>
-
-            </div>
-        `;
-    }
-}
-
-
-/* ============================================================
-   RENDER ADMIN
-   ============================================================ */
-
-function renderAdminDashboard(stats) {
-
-    const container =
-        getElement("adminContent");
-
-    if (!container) return;
-
-
-    container.innerHTML = `
-
-        <div class="admin-kpis">
-
-            <div class="admin-kpi">
-
-                <span>🩸</span>
-
-                <strong>
-                    ${stats.donors}
-                </strong>
-
-                <small>
-                    Donors
-                </small>
-
-            </div>
-
-
-            <div class="admin-kpi">
-
-                <span>⏳</span>
-
-                <strong>
-                    ${stats.pending}
-                </strong>
-
-                <small>
-                    Pending Requests
-                </small>
-
-            </div>
-
-
-            <div class="admin-kpi">
-
-                <span>📋</span>
-
-                <strong>
-                    ${stats.requests}
-                </strong>
-
-                <small>
-                    Total Requests
-                </small>
-
-            </div>
-
-
-            <div class="admin-kpi">
-
-                <span>❤️</span>
-
-                <strong>
-                    ${stats.responses}
-                </strong>
-
-                <small>
-                    Donor Responses
-                </small>
-
-            </div>
-
-        </div>
-
-
-        <div class="admin-tabs">
-
-            <button
-                class="admin-tab active"
-                onclick="switchAdminTab('pending', this)"
-            >
-                Pending Requests
-            </button>
-
-            <button
-                class="admin-tab"
-                onclick="switchAdminTab('requests', this)"
-            >
-                All Requests
-            </button>
-
-            <button
-                class="admin-tab"
-                onclick="switchAdminTab('donors', this)"
-            >
-                Donors
-            </button>
-
-            <button
-                class="admin-tab"
-                onclick="switchAdminTab('responses', this)"
-            >
-                Responses
-            </button>
-
-        </div>
-
-
-        <div id="adminTabContent">
-
-            <div class="loading-state">
-                Loading...
-            </div>
-
-        </div>
-
-    `;
-
-
-    renderAdminTab("pending");
-}
-
-
-/* ============================================================
-   ADMIN TAB SWITCH
-   ============================================================ */
-
-async function switchAdminTab(tab, button) {
-
-    $$(".admin-tab").forEach(item => {
-
-        item.classList.remove("active");
-
-    });
-
-
-    if (button) {
-
-        button.classList.add("active");
-
-    }
-
-
-    state.currentAdminTab = tab;
-
-
-    await renderAdminTab(tab);
-}
-
-
-/* ============================================================
-   RENDER ADMIN TAB
-   ============================================================ */
-
-async function renderAdminTab(tab) {
-
-    const container =
-        getElement("adminTabContent");
-
-    if (!container) return;
-
-
-    container.innerHTML = `
-        <div class="loading-state">
-            <span class="spinner"></span>
-            Loading...
-        </div>
-    `;
-
-
-    try {
-
-        if (tab === "pending") {
-
-            await renderPendingRequests();
-
-        }
-
-        else if (tab === "requests") {
-
-            await renderAllRequests();
-
-        }
-
-        else if (tab === "donors") {
-
-            await renderAdminDonors();
-
-        }
-
-        else if (tab === "responses") {
-
-            await renderResponses();
-
-        }
-
-
-    } catch (error) {
-
-        console.error(error);
-
-        container.innerHTML = `
-            <div class="empty-state">
-                <h3>Unable to load data</h3>
-                <p>${escapeHTML(error.message)}</p>
-            </div>
-        `;
-    }
-}
-
-
-/* ============================================================
-   PENDING REQUESTS
-   ============================================================ */
-
-async function renderPendingRequests() {
-
-    const container =
-        getElement("adminTabContent");
-
-
-    const { data, error } =
-        await supabaseClient
-            .from("blood_requests")
-            .select("*")
-            .eq("status", "pending")
-            .order("created_at", {
-                ascending: true
-            });
-
-
-    if (error) throw error;
-
-
-    if (!data?.length) {
-
-        container.innerHTML = `
-            <div class="empty-state">
-
-                <div class="empty-icon">
-                    ✓
-                </div>
-
-                <h3>
-                    No pending requests
-                </h3>
-
-                <p>
-                    All requests have been reviewed.
-                </p>
-
-            </div>
-        `;
-
-        return;
-    }
-
-
-    container.innerHTML = `
-
-        <div class="admin-request-list">
-
-            ${data.map(request => `
-
-                <div class="admin-request-card">
-
-                    <div class="admin-request-main">
-
-                        <div class="blood-badge large">
-                            ${escapeHTML(
-                                request.blood_group
-                            )}
-                        </div>
-
-                        <div>
-
-                            <h3>
-                                ${escapeHTML(
-                                    request.patient_name
-                                )}
-                            </h3>
-
-                            <p>
-                                🏥 ${escapeHTML(
-                                    request.hospital
-                                )}
-                            </p>
-
-                            <p>
-                                📍 ${escapeHTML(
-                                    request.location
-                                )}
-                            </p>
-
-                            <p>
-                                🩸 ${request.units_required} unit(s)
-                            </p>
-
-                            <p>
-                                📅 ${
-                                    request.required_date
-                                    ? formatDate(request.required_date)
-                                    : "Not specified"
-                                }
-                            </p>
-
-                        </div>
-
-                    </div>
-
-
-                    <div class="admin-actions">
-
-                        <button
-                            class="btn btn-success"
-                            onclick="verifyRequest('${request.id}')"
-                        >
-                            ✓ Verify
-                        </button>
-
-                        <button
-                            class="btn btn-danger"
-                            onclick="rejectRequest('${request.id}')"
-                        >
-                            ✕ Reject
-                        </button>
-
-                    </div>
-
-                </div>
-
-            `).join("")}
-
-        </div>
-
-    `;
-}
-
-
-/* ============================================================
-   VERIFY REQUEST
-   ============================================================ */
-
-async function verifyRequest(id) {
-
-    if (!confirm("Verify this blood request?")) {
-        return;
-    }
-
-
-    try {
-
-        const { error } =
-            await supabaseClient
-                .from("blood_requests")
-                .update({
-                    status: "verified"
-                })
-                .eq("id", id);
-
-
-        if (error) throw error;
-
-
-        showToast(
-            "Request verified successfully.",
-            "success"
-        );
-
-
-        await loadAdminDashboard();
-
-        await loadRequests();
-
-
-    } catch (error) {
-
-        console.error(error);
-
-        showToast(
-            error.message || "Unable to verify request.",
-            "error"
-        );
-    }
-}
-
-
-/* ============================================================
-   REJECT REQUEST
-   ============================================================ */
-
-async function rejectRequest(id) {
-
-    if (!confirm("Reject this blood request?")) {
-        return;
-    }
-
-
-    try {
-
-        const { error } =
-            await supabaseClient
-                .from("blood_requests")
-                .update({
-                    status: "rejected"
-                })
-                .eq("id", id);
-
-
-        if (error) throw error;
-
-
-        showToast(
-            "Request rejected.",
-            "success"
-        );
-
-
-        await loadAdminDashboard();
-
-
-    } catch (error) {
-
-        console.error(error);
-
-        showToast(
-            error.message || "Unable to reject request.",
-            "error"
-        );
-    }
-}
-
-
-/* ============================================================
-   ALL REQUESTS
-   ============================================================ */
-
-async function renderAllRequests() {
-
-    const container =
-        getElement("adminTabContent");
-
-
-    const { data, error } =
-        await supabaseClient
-            .from("blood_requests")
-            .select("*")
-            .order("created_at", {
-                ascending: false
-            });
-
-
-    if (error) throw error;
-
-
-    if (!data?.length) {
-
-        container.innerHTML = `
-            <div class="empty-state">
-                <h3>No requests found</h3>
-            </div>
-        `;
-
-        return;
-    }
-
-
-    container.innerHTML = `
-
-        <div class="table-wrapper">
-
-            <table class="admin-table">
-
-                <thead>
-
-                    <tr>
-
-                        <th>Patient</th>
-
-                        <th>Blood</th>
-
-                        <th>Hospital</th>
-
-                        <th>Units</th>
-
-                        <th>Priority</th>
-
-                        <th>Status</th>
-
-                        <th>Date</th>
-
-                        <th>Action</th>
-
-                    </tr>
-
-                </thead>
-
-
-                <tbody>
-
-                    ${data.map(request => `
-
-                        <tr>
-
-                            <td>
-                                ${escapeHTML(
-                                    request.patient_name
-                                )}
-                            </td>
-
-                            <td>
-                                <span class="blood-badge">
-                                    ${escapeHTML(
-                                        request.blood_group
-                                    )}
-                                </span>
-                            </td>
-
-                            <td>
-                                ${escapeHTML(
-                                    request.hospital
-                                )}
-                            </td>
-
-                            <td>
-                                ${request.units_required}
-                            </td>
-
-                            <td>
-                                ${capitalize(
-                                    request.priority
-                                )}
-                            </td>
-
-                            <td>
-
-                                <span class="status-badge ${request.status}">
-                                    ${capitalize(
-                                        request.status
-                                    )}
-                                </span>
-
-                            </td>
-
-                            <td>
-                                ${formatDate(
-                                    request.created_at
-                                )}
-                            </td>
-
-                            <td>
-
-                                ${
-                                    request.status === "pending"
-                                    ?
-                                    `
-                                    <button
-                                        class="btn btn-small btn-success"
-                                        onclick="verifyRequest('${request.id}')"
-                                    >
-                                        Verify
-                                    </button>
-
-                                    <button
-                                        class="btn btn-small btn-danger"
-                                        onclick="rejectRequest('${request.id}')"
-                                    >
-                                        Reject
-                                    </button>
-                                    `
-                                    :
-                                    request.status === "verified"
-                                    ?
-                                    `
-                                    <button
-                                        class="btn btn-small btn-warning"
-                                        onclick="cancelRequest('${request.id}')"
-                                    >
-                                        Cancel
-                                    </button>
-                                    `
-                                    :
-                                    "—"
-                                }
-
-                            </td>
-
-                        </tr>
-
-                    `).join("")}
-
-                </tbody>
-
-            </table>
-
-        </div>
-
-    `;
-}
-
-
-/* ============================================================
-   CANCEL REQUEST
-   ============================================================ */
-
-async function cancelRequest(id) {
-
-    if (!confirm("Cancel this request?")) {
-        return;
-    }
-
-
-    try {
-
-        const { error } =
-            await supabaseClient
-                .from("blood_requests")
-                .update({
-                    status: "cancelled"
-                })
-                .eq("id", id);
-
-
-        if (error) throw error;
-
-
-        showToast(
-            "Request cancelled.",
-            "success"
-        );
-
-
-        await loadAdminDashboard();
-
-
-    } catch (error) {
-
-        console.error(error);
-
-        showToast(
-            error.message || "Unable to cancel request.",
-            "error"
-        );
-    }
-}
-
-
-/* ============================================================
-   ADMIN DONORS
-   ============================================================ */
-
-async function renderAdminDonors() {
-
-    const container =
-        getElement("adminTabContent");
-
-
-    const { data, error } =
-        await supabaseClient
-            .from("profiles")
-            .select("*")
-            .eq("role", "donor")
-            .order("created_at", {
-                ascending: false
-            });
-
-
-    if (error) throw error;
-
-
-    if (!data?.length) {
-
-        container.innerHTML = `
-            <div class="empty-state">
-                <h3>No donors found</h3>
-            </div>
-        `;
-
-        return;
-    }
-
-
-    container.innerHTML = `
-
-        <div class="table-wrapper">
-
-            <table class="admin-table">
-
-                <thead>
-
-                    <tr>
-
-                        <th>Name</th>
-
-                        <th>Blood Group</th>
-
-                        <th>Location</th>
-
-                        <th>Phone</th>
-
-                        <th>Availability</th>
-
-                        <th>Joined</th>
-
-                    </tr>
-
-                </thead>
-
-
-                <tbody>
-
-                    ${data.map(donor => `
-
-                        <tr>
-
-                            <td>
-                                ${escapeHTML(
-                                    donor.full_name || "—"
-                                )}
-                            </td>
-
-                            <td>
-
-                                <span class="blood-badge">
-                                    ${escapeHTML(
-                                        donor.blood_group || "—"
-                                    )}
-                                </span>
-
-                            </td>
-
-                            <td>
-                                ${escapeHTML(
-                                    donor.location || "—"
-                                )}
-                            </td>
-
-                            <td>
-                                ${escapeHTML(
-                                    donor.phone || "—"
-                                )}
-                            </td>
-
-                            <td>
-
-                                ${
-                                    donor.is_available
-                                    ?
-                                    `
-                                    <span class="status-badge available">
-                                        Available
-                                    </span>
-                                    `
-                                    :
-                                    `
-                                    <span class="status-badge unavailable">
-                                        Unavailable
-                                    </span>
-                                    `
-                                }
-
-                            </td>
-
-                            <td>
-                                ${formatDate(
-                                    donor.created_at
-                                )}
-                            </td>
-
-                        </tr>
-
-                    `).join("")}
-
-                </tbody>
-
-            </table>
-
-        </div>
-
-    `;
-}
-
-
-/* ============================================================
-   REQUEST RESPONSES
-   ============================================================ */
-
-async function renderResponses() {
-
-    const container =
-        getElement("adminTabContent");
-
-
-    const { data, error } =
-        await supabaseClient
-            .from("request_responses")
-            .select(`
-                *,
-                profiles:donor_id (
-                    full_name,
-                    blood_group,
-                    phone,
-                    location
-                ),
-                blood_requests:request_id (
-                    patient_name,
-                    blood_group,
-                    hospital,
-                    status
-                )
-            `)
-            .order("created_at", {
-                ascending: false
-            });
-
-
-    if (error) throw error;
-
-
-    if (!data?.length) {
-
-        container.innerHTML = `
-            <div class="empty-state">
-
-                <h3>
-                    No donor responses yet
-                </h3>
-
-                <p>
-                    Responses will appear here when donors volunteer.
-                </p>
-
-            </div>
-        `;
-
-        return;
-    }
-
-
-    container.innerHTML = `
-
-        <div class="table-wrapper">
-
-            <table class="admin-table">
-
-                <thead>
-
-                    <tr>
-
-                        <th>Donor</th>
-
-                        <th>Blood</th>
-
-                        <th>Location</th>
-
-                        <th>Phone</th>
-
-                        <th>Patient</th>
-
-                        <th>Request Blood</th>
-
-                        <th>Status</th>
-
-                    </tr>
-
-                </thead>
-
-
-                <tbody>
-
-                    ${data.map(response => {
-
-                        const donor =
-                            response.profiles || {};
-
-                        const request =
-                            response.blood_requests || {};
-
-
-                        return `
-
-                            <tr>
-
-                                <td>
-                                    ${escapeHTML(
-                                        donor.full_name || "—"
-                                    )}
-                                </td>
-
-                                <td>
-                                    ${escapeHTML(
-                                        donor.blood_group || "—"
-                                    )}
-                                </td>
-
-                                <td>
-                                    ${escapeHTML(
-                                        donor.location || "—"
-                                    )}
-                                </td>
-
-                                <td>
-                                    ${escapeHTML(
-                                        donor.phone || "—"
-                                    )}
-                                </td>
-
-                                <td>
-                                    ${escapeHTML(
-                                        request.patient_name || "—"
-                                    )}
-                                </td>
-
-                                <td>
-                                    ${escapeHTML(
-                                        request.blood_group || "—"
-                                    )}
-                                </td>
-
-                                <td>
-                                    <span class="status-badge">
-                                        ${capitalize(
-                                            response.status
-                                        )}
-                                    </span>
-                                </td>
-
-                            </tr>
-
-                        `;
-
-                    }).join("")}
-
-                </tbody>
-
-            </table>
-
-        </div>
-
-    `;
-}
-
-
-/* ============================================================
-   15. REQUIRE LOGIN
+   29. LOGIN REQUIRED
    ============================================================ */
 
 function requireLogin() {
@@ -2939,12 +2296,27 @@ function requireLogin() {
         "error"
     );
 
-    openModal("authModal");
+    openModal(
+        "authModal"
+    );
 }
 
 
 /* ============================================================
-   16. NAVIGATION HELPERS
+   30. REFRESH PUBLIC DATA
+   ============================================================ */
+
+async function refreshPublicData() {
+
+    await Promise.all([
+        loadDonors(),
+        loadRequests()
+    ]);
+}
+
+
+/* ============================================================
+   31. SMOOTH SCROLL
    ============================================================ */
 
 function scrollToSection(id) {
@@ -2952,322 +2324,19 @@ function scrollToSection(id) {
     const element =
         getElement(id);
 
+
     if (!element) return;
 
 
     element.scrollIntoView({
-
         behavior: "smooth",
-
         block: "start"
-
     });
 }
 
 
 /* ============================================================
-   17. FORM EVENT LISTENERS
-   ============================================================ */
-
-document.addEventListener("DOMContentLoaded", () => {
-
-    /* Login */
-
-    const loginForm =
-        getElement("loginForm");
-
-    if (loginForm) {
-
-        loginForm.addEventListener(
-            "submit",
-            login
-        );
-    }
-
-
-    /* Signup */
-
-    const signupForm =
-        getElement("signupForm");
-
-    if (signupForm) {
-
-        signupForm.addEventListener(
-            "submit",
-            signup
-        );
-    }
-
-
-    /* Blood request */
-
-    const requestForm =
-        getElement("requestForm");
-
-    if (requestForm) {
-
-        requestForm.addEventListener(
-            "submit",
-            submitBloodRequest
-        );
-    }
-
-
-    /* Search */
-
-    const searchButton =
-        getElement("searchDonorsBtn");
-
-    if (searchButton) {
-
-        searchButton.addEventListener(
-            "click",
-            loadDonors
-        );
-    }
-
-
-    /* Request blood buttons */
-
-    $$("[data-request-blood]").forEach(button => {
-
-        button.addEventListener(
-            "click",
-            openRequestModal
-        );
-
-    });
-
-
-    /* Login buttons */
-
-    $$("[data-login]").forEach(button => {
-
-        button.addEventListener(
-            "click",
-            () => openModal("authModal")
-        );
-
-    });
-
-
-    /* Dashboard */
-
-    $$("[data-dashboard]").forEach(button => {
-
-        button.addEventListener(
-            "click",
-            openDashboard
-        );
-
-    });
-
-
-    /* Admin */
-
-    $$("[data-admin]").forEach(button => {
-
-        button.addEventListener(
-            "click",
-            openAdminDashboard
-        );
-
-    });
-
-
-    /* Logout */
-
-    $$("[data-logout]").forEach(button => {
-
-        button.addEventListener(
-            "click",
-            logout
-        );
-
-    });
-
-
-    /* Become donor */
-
-    $$("[data-become-donor]").forEach(button => {
-
-        button.addEventListener(
-            "click",
-            () => {
-
-                openModal("authModal");
-
-                /*
-                  If your auth modal has signup tabs,
-                  try switching to signup.
-                */
-
-                const signupTab =
-                    getElement("signupTab");
-
-                if (signupTab) {
-
-                    signupTab.click();
-                }
-
-            }
-        );
-
-    });
-
-
-    /*
-      Auth state changes
-    */
-
-    supabaseClient.auth.onAuthStateChange(
-        async (event, session) => {
-
-            console.log(
-                "Auth event:",
-                event
-            );
-
-
-            state.user =
-                session?.user || null;
-
-
-            if (state.user) {
-
-                state.profile =
-                    await loadProfile(
-                        state.user.id
-                    );
-
-            } else {
-
-                state.profile = null;
-            }
-
-
-            renderNavigation();
-
-
-            /*
-              Refresh public data after login/logout.
-            */
-
-            loadDonors();
-
-            loadRequests();
-
-        }
-    );
-
-
-    /*
-      Initial session
-    */
-
-    initializeApp();
-
-});
-
-
-/* ============================================================
-   18. INITIALIZE APPLICATION
-   ============================================================ */
-
-async function initializeApp() {
-
-    try {
-
-        const session =
-            await getSession();
-
-
-        state.user =
-            session?.user || null;
-
-
-        if (state.user) {
-
-            state.profile =
-                await loadProfile(
-                    state.user.id
-                );
-        }
-
-
-        renderNavigation();
-
-
-        /*
-          Load public sections.
-        */
-
-        await Promise.all([
-
-            loadDonors(),
-
-            loadRequests()
-
-        ]);
-
-
-    } catch (error) {
-
-        console.error(
-            "Application initialization error:",
-            error
-        );
-    }
-}
-
-
-/* ============================================================
-   19. UTILITY FUNCTIONS
-   ============================================================ */
-
-
-/* Escape HTML */
-
-function escapeHTML(value) {
-
-    if (value === null || value === undefined) {
-        return "";
-    }
-
-
-    return String(value)
-
-        .replace(/&/g, "&amp;")
-
-        .replace(/</g, "&lt;")
-
-        .replace(/>/g, "&gt;")
-
-        .replace(/"/g, "&quot;")
-
-        .replace(/'/g, "&#039;");
-}
-
-
-/* ============================================================
-   CAPITALIZE
-   ============================================================ */
-
-function capitalize(value) {
-
-    if (!value) return "";
-
-    return String(value)
-        .charAt(0)
-        .toUpperCase() +
-        String(value)
-            .slice(1)
-            .toLowerCase();
-}
-
-
-/* ============================================================
-   FORMAT DATE
+   32. DATE FORMATTER
    ============================================================ */
 
 function formatDate(date) {
@@ -3279,9 +2348,15 @@ function formatDate(date) {
         new Date(date);
 
 
-    if (Number.isNaN(parsed.getTime())) {
+    if (
+        Number.isNaN(
+            parsed.getTime()
+        )
+    ) {
 
-        return escapeHTML(date);
+        return escapeHTML(
+            date
+        );
     }
 
 
@@ -3297,7 +2372,27 @@ function formatDate(date) {
 
 
 /* ============================================================
-   GET INITIALS
+   33. CAPITALIZE
+   ============================================================ */
+
+function capitalize(value) {
+
+    if (!value) return "";
+
+
+    const text =
+        String(value);
+
+
+    return (
+        text.charAt(0).toUpperCase() +
+        text.slice(1).toLowerCase()
+    );
+}
+
+
+/* ============================================================
+   34. INITIALS
    ============================================================ */
 
 function getInitials(name) {
@@ -3306,76 +2401,437 @@ function getInitials(name) {
 
 
     const words =
-        name
+        String(name)
             .trim()
             .split(/\s+/)
             .slice(0, 2);
 
 
     return words
-        .map(word =>
-            word.charAt(0).toUpperCase()
+        .map(
+            word =>
+                word
+                    .charAt(0)
+                    .toUpperCase()
         )
         .join("");
 }
 
 
 /* ============================================================
-   20. GLOBAL FUNCTIONS
-   Make functions accessible to HTML onclick=""
+   35. HTML ESCAPE
    ============================================================ */
 
-window.openModal = openModal;
+function escapeHTML(value) {
 
-window.closeModal = closeModal;
+    if (
+        value === null ||
+        value === undefined
+    ) {
 
-window.closeAllModals = closeAllModals;
+        return "";
+    }
 
-window.login = login;
 
-window.signup = signup;
+    return String(value)
 
-window.logout = logout;
+        .replace(
+            /&/g,
+            "&amp;"
+        )
 
-window.loadDonors = loadDonors;
+        .replace(
+            /</g,
+            "&lt;"
+        )
 
-window.loadRequests = loadRequests;
+        .replace(
+            />/g,
+            "&gt;"
+        )
 
-window.contactDonor = contactDonor;
+        .replace(
+            /"/g,
+            "&quot;"
+        )
 
-window.respondToRequest = respondToRequest;
-
-window.openRequestModal = openRequestModal;
-
-window.submitBloodRequest = submitBloodRequest;
-
-window.openDashboard = openDashboard;
-
-window.loadDashboard = loadDashboard;
-
-window.toggleAvailability = toggleAvailability;
-
-window.addDonation = addDonation;
-
-window.openAdminDashboard = openAdminDashboard;
-
-window.switchAdminTab = switchAdminTab;
-
-window.verifyRequest = verifyRequest;
-
-window.rejectRequest = rejectRequest;
-
-window.cancelRequest = cancelRequest;
-
-window.requireLogin = requireLogin;
-
-window.scrollToSection = scrollToSection;
+        .replace(
+            /'/g,
+            "&#039;"
+        );
+}
 
 
 /* ============================================================
-   BLOODCONNECT APP READY
+   36. FORM SETUP
    ============================================================ */
 
-console.log(
-    "🩸 BloodConnect application loaded successfully."
+function setupForms() {
+
+    const loginForm =
+        getElement("loginForm");
+
+
+    if (loginForm) {
+
+        loginForm.addEventListener(
+            "submit",
+            login
+        );
+    }
+
+
+    const signupForm =
+        getElement("signupForm");
+
+
+    if (signupForm) {
+
+        signupForm.addEventListener(
+            "submit",
+            signup
+        );
+    }
+
+
+    const requestForm =
+        getElement("requestForm");
+
+
+    if (requestForm) {
+
+        requestForm.addEventListener(
+            "submit",
+            submitBloodRequest
+        );
+    }
+}
+
+
+/* ============================================================
+   37. BUTTON SETUP
+   ============================================================ */
+
+function setupButtons() {
+
+    /*
+      Search donors
+    */
+
+    const searchButton =
+        getElement(
+            "searchDonorsBtn"
+        );
+
+
+    if (searchButton) {
+
+        searchButton.addEventListener(
+            "click",
+            loadDonors
+        );
+    }
+
+
+    /*
+      Login buttons
+    */
+
+    $$("[data-login]").forEach(
+        button => {
+
+            button.addEventListener(
+                "click",
+                () => {
+
+                    openModal(
+                        "authModal"
+                    );
+
+                }
+            );
+
+        }
+    );
+
+
+    /*
+      Dashboard buttons
+    */
+
+    $$("[data-dashboard]").forEach(
+        button => {
+
+            button.addEventListener(
+                "click",
+                openDashboard
+            );
+
+        }
+    );
+
+
+    /*
+      Admin buttons
+    */
+
+    $$("[data-admin]").forEach(
+        button => {
+
+            button.addEventListener(
+                "click",
+                openAdminDashboard
+            );
+
+        }
+    );
+
+
+    /*
+      Logout buttons
+    */
+
+    $$("[data-logout]").forEach(
+        button => {
+
+            button.addEventListener(
+                "click",
+                logout
+            );
+
+        }
+    );
+
+
+    /*
+      Request blood
+    */
+
+    $$("[data-request-blood]").forEach(
+        button => {
+
+            button.addEventListener(
+                "click",
+                openRequestModal
+            );
+
+        }
+    );
+
+
+    /*
+      Become donor
+    */
+
+    $$("[data-become-donor]").forEach(
+        button => {
+
+            button.addEventListener(
+                "click",
+                () => {
+
+                    openModal(
+                        "authModal"
+                    );
+
+
+                    const signupTab =
+                        getElement(
+                            "signupTab"
+                        );
+
+
+                    if (signupTab) {
+
+                        signupTab.click();
+                    }
+
+                }
+            );
+
+        }
+    );
+}
+
+
+/* ============================================================
+   38. AUTH STATE LISTENER
+   ============================================================ */
+
+function setupAuthListener() {
+
+    supabaseClient.auth.onAuthStateChange(
+        async (event, session) => {
+
+            console.log(
+                "Auth event:",
+                event
+            );
+
+
+            state.user =
+                session?.user ||
+                null;
+
+
+            if (state.user) {
+
+                state.profile =
+                    await loadProfile(
+                        state.user.id
+                    );
+
+            } else {
+
+                state.profile =
+                    null;
+            }
+
+
+            renderNavigation();
+
+
+            /*
+              Refresh donor/request sections.
+            */
+
+            await refreshPublicData();
+
+        }
+    );
+}
+
+
+/* ============================================================
+   39. INITIALIZE APP
+   ============================================================ */
+
+async function initializeApp() {
+
+    try {
+
+        const session =
+            await getSession();
+
+
+        state.user =
+            session?.user ||
+            null;
+
+
+        if (state.user) {
+
+            state.profile =
+                await loadProfile(
+                    state.user.id
+                );
+        }
+
+
+        renderNavigation();
+
+
+        await refreshPublicData();
+
+
+        console.log(
+            "🩸 BloodConnect initialized successfully."
+        );
+
+
+    } catch (error) {
+
+        console.error(
+            "BloodConnect initialization error:",
+            error
+        );
+    }
+}
+
+
+/* ============================================================
+   40. DOM READY
+   ============================================================ */
+
+document.addEventListener(
+    "DOMContentLoaded",
+    () => {
+
+        setupForms();
+
+        setupButtons();
+
+        setupAuthListener();
+
+        initializeApp();
+
+    }
 );
+
+
+/* ============================================================
+   41. GLOBAL FUNCTIONS
+   Required for onclick="" in HTML
+   ============================================================ */
+
+window.openModal =
+    openModal;
+
+window.closeModal =
+    closeModal;
+
+window.closeAllModals =
+    closeAllModals;
+
+window.login =
+    login;
+
+window.signup =
+    signup;
+
+window.logout =
+    logout;
+
+window.openAdminDashboard =
+    openAdminDashboard;
+
+window.loadDonors =
+    loadDonors;
+
+window.loadRequests =
+    loadRequests;
+
+window.contactDonor =
+    contactDonor;
+
+window.openRequestModal =
+    openRequestModal;
+
+window.submitBloodRequest =
+    submitBloodRequest;
+
+window.respondToRequest =
+    respondToRequest;
+
+window.openDashboard =
+    openDashboard;
+
+window.loadDashboard =
+    loadDashboard;
+
+window.toggleAvailability =
+    toggleAvailability;
+
+window.addDonation =
+    addDonation;
+
+window.requireLogin =
+    requireLogin;
+
+window.scrollToSection =
+    scrollToSection;
+
+
+/* ============================================================
+   END
+   ============================================================ */
