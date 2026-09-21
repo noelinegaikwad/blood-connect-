@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BloodConnect — Blood Donation Network</title>
+  <meta name="description" content="Connect blood donors with verified blood requests and manage donor availability and donation history.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="toast"></div>
+
+  <header class="navbar">
+    <a class="brand" href="#home"><span class="brand-drop">♥</span><span>Blood<span>Connect</span></span></a>
+    <button class="menu-btn" id="menuBtn">☰</button>
+    <nav id="nav">
+      <a href="#home">Home</a>
+      <a href="#find">Find Donor</a>
+      <a href="#requests">Blood Requests</a>
+      <a href="#about">How It Works</a>
+      <button class="btn btn-outline" id="loginBtn">Login</button>
+      <button class="btn btn-primary" id="signupBtn">Become a Donor</button>
+    </nav>
+  </header>
+
+  <main>
+    <section id="home" class="hero">
+      <div class="hero-content">
+        <span class="eyebrow">🩸 Every donor can make a difference</span>
+        <h1>Find blood.<br><em>Save a life.</em></h1>
+        <p>BloodConnect brings donors and verified blood requests together in one simple platform.</p>
+        <div class="hero-actions">
+          <button class="btn btn-primary btn-lg" id="heroFind">Find a Donor →</button>
+          <button class="btn btn-light btn-lg" id="heroDonate">Become a Donor</button>
+        </div>
+        <div class="trust-row"><span>✓ Verified requests</span><span>✓ Availability tracking</span><span>✓ Donation history</span></div>
+      </div>
+      <div class="hero-card">
+        <div class="pulse">♥</div>
+        <div class="blood-stat"><strong id="heroDonorCount">0</strong><span>registered donors</span></div>
+        <div class="mini-bars"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+        <p>“One donation can help patients in critical need.”</p>
+      </div>
+    </section>
+
+    <section class="quick-search">
+      <div>
+        <span class="eyebrow">Emergency search</span>
+        <h2>Looking for blood?</h2>
+      </div>
+      <form id="quickSearchForm" class="search-grid">
+        <select id="quickGroup" required>
+          <option value="">Blood group</option>
+          <option>A+</option><option>A-</option><option>B+</option><option>B-</option>
+          <option>AB+</option><option>AB-</option><option>O+</option><option>O-</option>
+        </select>
+        <input id="quickLocation" placeholder="City / location" required>
+        <button class="btn btn-dark" type="submit">Search Donors</button>
+      </form>
+    </section>
+
+    <section id="find" class="section">
+      <div class="section-head">
+        <div><span class="eyebrow">Donor directory</span><h2>Find an available donor</h2></div>
+        <span class="live-pill">● Live database</span>
+      </div>
+      <div class="filter-card">
+        <select id="filterGroup"><option value="">All blood groups</option><option>A+</option><option>A-</option><option>B+</option><option>B-</option><option>AB+</option><option>AB-</option><option>O+</option><option>O-</option></select>
+        <input id="filterLocation" placeholder="Search by city/location">
+        <label class="check"><input type="checkbox" id="availableOnly" checked> Available only</label>
+        <button class="btn btn-primary" id="filterBtn">Search</button>
+      </div>
+      <div id="donorGrid" class="cards"></div>
+      <div id="donorEmpty" class="empty hidden">No matching donors found.</div>
+    </section>
+
+    <section id="requests" class="section soft">
+      <div class="section-head">
+        <div><span class="eyebrow">Verified needs</span><h2>Active blood requests</h2></div>
+        <button class="btn btn-primary" id="requestBtn">Request Blood</button>
+      </div>
+      <div id="requestGrid" class="request-grid"></div>
+      <div id="requestEmpty" class="empty hidden">No active verified requests at the moment.</div>
+    </section>
+
+    <section id="about" class="section">
+      <div class="center-head"><span class="eyebrow">How it works</span><h2>Simple. Fast. Organized.</h2><p>One platform for donors, patients and administrators.</p></div>
+      <div class="steps">
+        <article><b>01</b><span>👤</span><h3>Register</h3><p>Create a donor profile with blood group, location and availability.</p></article>
+        <article><b>02</b><span>🔎</span><h3>Find or request</h3><p>Search available donors or submit a blood request with the required details.</p></article>
+        <article><b>03</b><span>🤝</span><h3>Connect</h3><p>Suitable donors and verified requests can be connected quickly.</p></article>
+        <article><b>04</b><span>📋</span><h3>Track history</h3><p>Donors can keep their availability and donation records organized.</p></article>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div><a class="brand" href="#home"><span class="brand-drop">♥</span><span>Blood<span>Connect</span></span></a><p>A blood donation network project by Noeline Gaikwad.</p></div>
+    <div><strong>Quick Links</strong><a href="#find">Find Donor</a><a href="#requests">Blood Requests</a><a href="#about">How It Works</a></div>
+    <div><strong>Important</strong><p>This platform is a coordination tool. Eligibility and donation decisions should be confirmed with an authorized blood bank/medical professional.</p></div>
+  </footer>
+
+  <!-- Auth modal -->
+  <div class="modal hidden" id="authModal">
+    <div class="modal-box">
+      <button class="close" data-close="authModal">×</button>
+      <div class="modal-head"><span class="eyebrow" id="authEyebrow">Welcome back</span><h2 id="authTitle">Login</h2></div>
+      <form id="authForm">
+        <div id="signupFields" class="hidden">
+          <label>Full name<input id="authName" autocomplete="name"></label>
+          <label>Blood group<select id="authGroup"><option value="">Select</option><option>A+</option><option>A-</option><option>B+</option><option>B-</option><option>AB+</option><option>AB-</option><option>O+</option><option>O-</option></select></label>
+          <label>City / location<input id="authLocation" placeholder="e.g. Nagpur"></label>
+          <label>Phone<input id="authPhone" placeholder="+91..."></label>
+        </div>
+        <label>Email<input type="email" id="authEmail" required autocomplete="email"></label>
+        <label>Password<input type="password" id="authPassword" required minlength="6" autocomplete="current-password"></label>
+        <button class="btn btn-primary full" id="authSubmit">Login</button>
+      </form>
+      <p class="switch-auth" id="switchAuth">Don't have an account? <button type="button">Sign up</button></p>
+    </div>
+  </div>
+
+  <!-- Request modal -->
+  <div class="modal hidden" id="requestModal">
+    <div class="modal-box wide">
+      <button class="close" data-close="requestModal">×</button>
+      <div class="modal-head"><span class="eyebrow">Emergency / planned need</span><h2>Request blood</h2></div>
+      <form id="requestForm" class="form-grid">
+        <label>Patient name<input id="patientName" required></label>
+        <label>Blood group<select id="requestGroup" required><option value="">Select</option><option>A+</option><option>A-</option><option>B+</option><option>B-</option><option>AB+</option><option>AB-</option><option>O+</option><option>O-</option></select></label>
+        <label>Units required<input id="units" type="number" min="1" max="20" value="1" required></label>
+        <label>Hospital / blood bank<input id="hospital" required></label>
+        <label>City / location<input id="requestLocation" required></label>
+        <label>Required date<input id="requiredDate" type="date" required></label>
+        <label class="full-span">Reason / additional information<textarea id="requestNotes" rows="3" placeholder="Keep personal medical information minimal."></textarea></label>
+        <button class="btn btn-primary full-span" type="submit">Submit Request for Verification</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Dashboard -->
+  <div class="modal hidden" id="dashboardModal">
+    <div class="modal-box dashboard-box">
+      <button class="close" data-close="dashboardModal">×</button>
+      <div class="modal-head"><span class="eyebrow">My account</span><h2 id="dashName">Dashboard</h2></div>
+      <div class="dash-stats">
+        <div><b id="dashGroup">—</b><span>Blood group</span></div>
+        <div><b id="dashAvailability">—</b><span>Availability</span></div>
+        <div><b id="dashDonations">0</b><span>Donations</span></div>
+      </div>
+      <div class="dashboard-actions">
+        <button class="btn btn-primary" id="toggleAvailability">Toggle availability</button>
+        <button class="btn btn-outline" id="addDonation">Add donation record</button>
+        <button class="btn btn-outline" id="logoutBtn">Logout</button>
+      </div>
+      <h3>Donation history</h3>
+      <div id="historyList" class="history-list"></div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
