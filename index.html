@@ -1,167 +1,2639 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>BloodConnect — Blood Donation Network</title>
-  <meta name="description" content="Connect blood donors with verified blood requests and manage donor availability and donation history.">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <meta
+        name="description"
+        content="BloodConnect - Connect blood donors with verified blood requests quickly and safely."
+    >
+
+    <meta
+        name="theme-color"
+        content="#b91c1c"
+    >
+
+    <title>BloodConnect | Blood Donation Network</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Poppins:wght@500;600;700;800&display=swap"
+        rel="stylesheet"
+    >
+
+    <!-- Main stylesheet -->
+    <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
-  <div id="toast"></div>
 
-  <header class="navbar">
-    <a class="brand" href="#home"><span class="brand-drop">♥</span><span>Blood<span>Connect</span></span></a>
-    <button class="menu-btn" id="menuBtn">☰</button>
-    <nav id="nav">
-      <a href="#home">Home</a>
-      <a href="#find">Find Donor</a>
-      <a href="#requests">Blood Requests</a>
-      <a href="#about">How It Works</a>
-      <button class="btn btn-outline" id="loginBtn">Login</button>
-      <button class="btn btn-primary" id="signupBtn">Become a Donor</button>
-    </nav>
-  </header>
+<!-- =========================================================
+     LOADING SCREEN
+========================================================= -->
 
-  <main>
-    <section id="home" class="hero">
-      <div class="hero-content">
-        <span class="eyebrow">🩸 Every donor can make a difference</span>
-        <h1>Find blood.<br><em>Save a life.</em></h1>
-        <p>BloodConnect brings donors and verified blood requests together in one simple platform.</p>
-        <div class="hero-actions">
-          <button class="btn btn-primary btn-lg" id="heroFind">Find a Donor →</button>
-          <button class="btn btn-light btn-lg" id="heroDonate">Become a Donor</button>
+<div id="pageLoader" class="page-loader">
+    <div class="loader-content">
+        <div class="loader-heart">♥</div>
+        <h2>BloodConnect</h2>
+        <p>Connecting people. Saving lives.</p>
+        <div class="loader-spinner"></div>
+    </div>
+</div>
+
+
+<!-- =========================================================
+     TOAST CONTAINER
+========================================================= -->
+
+<div
+    id="toastContainer"
+    class="toast-container"
+    aria-live="polite"
+    aria-atomic="true"
+></div>
+
+
+<!-- =========================================================
+     HEADER / NAVIGATION
+========================================================= -->
+
+<header class="site-header" id="siteHeader">
+
+    <div class="container nav-container">
+
+        <!-- Logo -->
+        <a
+            href="#home"
+            class="brand"
+            aria-label="BloodConnect Home"
+        >
+            <span class="brand-icon">♥</span>
+
+            <span class="brand-text">
+                <strong>Blood</strong>Connect
+            </span>
+        </a>
+
+
+        <!-- Desktop Navigation -->
+        <nav
+            class="main-nav"
+            id="mainNav"
+            aria-label="Main navigation"
+        >
+
+            <a href="#home" class="nav-link active">
+                Home
+            </a>
+
+            <a href="#find-donor" class="nav-link">
+                Find Donor
+            </a>
+
+            <a href="#requests" class="nav-link">
+                Blood Requests
+            </a>
+
+            <a href="#how-it-works" class="nav-link">
+                How It Works
+            </a>
+
+            <a href="#about" class="nav-link">
+                About
+            </a>
+
+        </nav>
+
+
+        <!-- Right Side -->
+        <div class="nav-actions">
+
+            <button
+                type="button"
+                class="btn btn-outline btn-small"
+                id="loginBtn"
+                onclick="openAuth('login')"
+            >
+                Login
+            </button>
+
+            <button
+                type="button"
+                class="btn btn-primary btn-small"
+                id="donorNavBtn"
+                onclick="openAuth('signup')"
+            >
+                Become a Donor
+            </button>
+
+            <!-- Logged-in dashboard button -->
+            <button
+                type="button"
+                class="btn btn-primary btn-small hidden"
+                id="dashboardNavBtn"
+                onclick="openDashboard()"
+            >
+                Dashboard
+            </button>
+
+            <!-- Admin button -->
+            <button
+                type="button"
+                class="btn btn-dark btn-small hidden"
+                id="adminNavBtn"
+                onclick="openAdminDashboard()"
+            >
+                Admin
+            </button>
+
+            <!-- Logout -->
+            <button
+                type="button"
+                class="btn btn-outline btn-small hidden"
+                id="logoutBtn"
+                onclick="logout()"
+            >
+                Logout
+            </button>
+
         </div>
-        <div class="trust-row"><span>✓ Verified requests</span><span>✓ Availability tracking</span><span>✓ Donation history</span></div>
-      </div>
-      <div class="hero-card">
-        <div class="pulse">♥</div>
-        <div class="blood-stat"><strong id="heroDonorCount">0</strong><span>registered donors</span></div>
-        <div class="mini-bars"><i></i><i></i><i></i><i></i><i></i><i></i></div>
-        <p>“One donation can help patients in critical need.”</p>
-      </div>
-    </section>
 
-    <section class="quick-search">
-      <div>
-        <span class="eyebrow">Emergency search</span>
-        <h2>Looking for blood?</h2>
-      </div>
-      <form id="quickSearchForm" class="search-grid">
-        <select id="quickGroup" required>
-          <option value="">Blood group</option>
-          <option>A+</option><option>A-</option><option>B+</option><option>B-</option>
-          <option>AB+</option><option>AB-</option><option>O+</option><option>O-</option>
-        </select>
-        <input id="quickLocation" placeholder="City / location" required>
-        <button class="btn btn-dark" type="submit">Search Donors</button>
-      </form>
-    </section>
 
-    <section id="find" class="section">
-      <div class="section-head">
-        <div><span class="eyebrow">Donor directory</span><h2>Find an available donor</h2></div>
-        <span class="live-pill">● Live database</span>
-      </div>
-      <div class="filter-card">
-        <select id="filterGroup"><option value="">All blood groups</option><option>A+</option><option>A-</option><option>B+</option><option>B-</option><option>AB+</option><option>AB-</option><option>O+</option><option>O-</option></select>
-        <input id="filterLocation" placeholder="Search by city/location">
-        <label class="check"><input type="checkbox" id="availableOnly" checked> Available only</label>
-        <button class="btn btn-primary" id="filterBtn">Search</button>
-      </div>
-      <div id="donorGrid" class="cards"></div>
-      <div id="donorEmpty" class="empty hidden">No matching donors found.</div>
-    </section>
+        <!-- Mobile menu button -->
+        <button
+            type="button"
+            class="mobile-menu-btn"
+            id="mobileMenuBtn"
+            aria-label="Open navigation menu"
+            aria-expanded="false"
+            aria-controls="mainNav"
+        >
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
 
-    <section id="requests" class="section soft">
-      <div class="section-head">
-        <div><span class="eyebrow">Verified needs</span><h2>Active blood requests</h2></div>
-        <button class="btn btn-primary" id="requestBtn">Request Blood</button>
-      </div>
-      <div id="requestGrid" class="request-grid"></div>
-      <div id="requestEmpty" class="empty hidden">No active verified requests at the moment.</div>
-    </section>
+    </div>
 
-    <section id="about" class="section">
-      <div class="center-head"><span class="eyebrow">How it works</span><h2>Simple. Fast. Organized.</h2><p>One platform for donors, patients and administrators.</p></div>
-      <div class="steps">
-        <article><b>01</b><span>👤</span><h3>Register</h3><p>Create a donor profile with blood group, location and availability.</p></article>
-        <article><b>02</b><span>🔎</span><h3>Find or request</h3><p>Search available donors or submit a blood request with the required details.</p></article>
-        <article><b>03</b><span>🤝</span><h3>Connect</h3><p>Suitable donors and verified requests can be connected quickly.</p></article>
-        <article><b>04</b><span>📋</span><h3>Track history</h3><p>Donors can keep their availability and donation records organized.</p></article>
-      </div>
-    </section>
-  </main>
+</header>
 
-  <footer>
-    <div><a class="brand" href="#home"><span class="brand-drop">♥</span><span>Blood<span>Connect</span></span></a><p>A blood donation network project by Noeline Gaikwad.</p></div>
-    <div><strong>Quick Links</strong><a href="#find">Find Donor</a><a href="#requests">Blood Requests</a><a href="#about">How It Works</a></div>
-    <div><strong>Important</strong><p>This platform is a coordination tool. Eligibility and donation decisions should be confirmed with an authorized blood bank/medical professional.</p></div>
-  </footer>
 
-  <!-- Auth modal -->
-  <div class="modal hidden" id="authModal">
-    <div class="modal-box">
-      <button class="close" data-close="authModal">×</button>
-      <div class="modal-head"><span class="eyebrow" id="authEyebrow">Welcome back</span><h2 id="authTitle">Login</h2></div>
-      <form id="authForm">
-        <div id="signupFields" class="hidden">
-          <label>Full name<input id="authName" autocomplete="name"></label>
-          <label>Blood group<select id="authGroup"><option value="">Select</option><option>A+</option><option>A-</option><option>B+</option><option>B-</option><option>AB+</option><option>AB-</option><option>O+</option><option>O-</option></select></label>
-          <label>City / location<input id="authLocation" placeholder="e.g. Nagpur"></label>
-          <label>Phone<input id="authPhone" placeholder="+91..."></label>
+<!-- =========================================================
+     MAIN CONTENT
+========================================================= -->
+
+<main>
+
+
+<!-- =========================================================
+     HERO SECTION
+========================================================= -->
+
+<section
+    class="hero-section"
+    id="home"
+>
+
+    <div class="hero-background-shape hero-shape-one"></div>
+    <div class="hero-background-shape hero-shape-two"></div>
+
+    <div class="container hero-grid">
+
+        <!-- Hero text -->
+        <div class="hero-content">
+
+            <div class="eyebrow">
+                <span class="eyebrow-dot"></span>
+                Every donation can save a life
+            </div>
+
+            <h1>
+                Find Blood.
+                <span>Save Lives.</span>
+                Make a Difference.
+            </h1>
+
+            <p class="hero-description">
+                BloodConnect brings donors and people in need together.
+                Find available blood donors, respond to urgent requests,
+                and help someone when they need it most.
+            </p>
+
+            <div class="hero-buttons">
+
+                <button
+                    type="button"
+                    class="btn btn-primary btn-large"
+                    onclick="scrollToSection('find-donor')"
+                >
+                    Find a Donor
+                    <span>→</span>
+                </button>
+
+                <button
+                    type="button"
+                    class="btn btn-white btn-large"
+                    onclick="openAuth('signup')"
+                >
+                    Become a Donor
+                </button>
+
+            </div>
+
+
+            <!-- Hero trust indicators -->
+            <div class="hero-trust">
+
+                <div class="trust-item">
+                    <strong id="heroDonorCount">0+</strong>
+                    <span>Registered Donors</span>
+                </div>
+
+                <div class="trust-divider"></div>
+
+                <div class="trust-item">
+                    <strong id="heroRequestCount">0+</strong>
+                    <span>Blood Requests</span>
+                </div>
+
+                <div class="trust-divider"></div>
+
+                <div class="trust-item">
+                    <strong>24/7</strong>
+                    <span>Emergency Support</span>
+                </div>
+
+            </div>
+
         </div>
-        <label>Email<input type="email" id="authEmail" required autocomplete="email"></label>
-        <label>Password<input type="password" id="authPassword" required minlength="6" autocomplete="current-password"></label>
-        <button class="btn btn-primary full" id="authSubmit">Login</button>
-      </form>
-      <p class="switch-auth" id="switchAuth">Don't have an account? <button type="button">Sign up</button></p>
-    </div>
-  </div>
 
-  <!-- Request modal -->
-  <div class="modal hidden" id="requestModal">
-    <div class="modal-box wide">
-      <button class="close" data-close="requestModal">×</button>
-      <div class="modal-head"><span class="eyebrow">Emergency / planned need</span><h2>Request blood</h2></div>
-      <form id="requestForm" class="form-grid">
-        <label>Patient name<input id="patientName" required></label>
-        <label>Blood group<select id="requestGroup" required><option value="">Select</option><option>A+</option><option>A-</option><option>B+</option><option>B-</option><option>AB+</option><option>AB-</option><option>O+</option><option>O-</option></select></label>
-        <label>Units required<input id="units" type="number" min="1" max="20" value="1" required></label>
-        <label>Hospital / blood bank<input id="hospital" required></label>
-        <label>City / location<input id="requestLocation" required></label>
-        <label>Required date<input id="requiredDate" type="date" required></label>
-        <label class="full-span">Reason / additional information<textarea id="requestNotes" rows="3" placeholder="Keep personal medical information minimal."></textarea></label>
-        <button class="btn btn-primary full-span" type="submit">Submit Request for Verification</button>
-      </form>
-    </div>
-  </div>
 
-  <!-- Dashboard -->
-  <div class="modal hidden" id="dashboardModal">
-    <div class="modal-box dashboard-box">
-      <button class="close" data-close="dashboardModal">×</button>
-      <div class="modal-head"><span class="eyebrow">My account</span><h2 id="dashName">Dashboard</h2></div>
-      <div class="dash-stats">
-        <div><b id="dashGroup">—</b><span>Blood group</span></div>
-        <div><b id="dashAvailability">—</b><span>Availability</span></div>
-        <div><b id="dashDonations">0</b><span>Donations</span></div>
-      </div>
-      <div class="dashboard-actions">
-        <button class="btn btn-primary" id="toggleAvailability">Toggle availability</button>
-        <button class="btn btn-outline" id="addDonation">Add donation record</button>
-        <button class="btn btn-outline" id="logoutBtn">Logout</button>
-      </div>
-      <h3>Donation history</h3>
-      <div id="historyList" class="history-list"></div>
-    </div>
-  </div>
+        <!-- Hero visual -->
+        <div class="hero-visual">
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="config.js"></script>
-  <script src="app.js"></script>
+            <div class="hero-card hero-main-card">
+
+                <div class="blood-drop-large">
+                    ♥
+                </div>
+
+                <div class="hero-card-content">
+
+                    <span class="status-badge status-online">
+                        ● Active Network
+                    </span>
+
+                    <h3>
+                        Someone needs your blood.
+                    </h3>
+
+                    <p>
+                        Your donation could be the reason
+                        another family gets one more day.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <!-- Floating card -->
+            <div class="floating-card floating-card-one">
+
+                <div class="floating-icon">
+                    ✓
+                </div>
+
+                <div>
+                    <strong>Verified Requests</strong>
+                    <small>Safer connections</small>
+                </div>
+
+            </div>
+
+
+            <div class="floating-card floating-card-two">
+
+                <div class="floating-icon">
+                    ♥
+                </div>
+
+                <div>
+                    <strong>Real Donors</strong>
+                    <small>Ready to help</small>
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+<!-- =========================================================
+     EMERGENCY SEARCH
+========================================================= -->
+
+<section
+    class="emergency-search-section"
+    id="find-donor"
+>
+
+    <div class="container">
+
+        <div class="emergency-card">
+
+            <div class="emergency-heading">
+
+                <div class="emergency-icon">
+                    !
+                </div>
+
+                <div>
+                    <span class="section-mini-label">
+                        Emergency Search
+                    </span>
+
+                    <h2>
+                        Find a Blood Donor
+                    </h2>
+
+                    <p>
+                        Search available donors by blood group
+                        and location.
+                    </p>
+                </div>
+
+            </div>
+
+
+            <form
+                id="donorSearchForm"
+                class="donor-search-form"
+            >
+
+                <!-- Blood group -->
+                <div class="form-group">
+
+                    <label for="searchBloodGroup">
+                        Blood Group
+                    </label>
+
+                    <select
+                        id="searchBloodGroup"
+                        name="blood_group"
+                    >
+                        <option value="">
+                            Any Blood Group
+                        </option>
+
+                        <option value="A+">A+</option>
+                        <option value="A-">A-</option>
+
+                        <option value="B+">B+</option>
+                        <option value="B-">B-</option>
+
+                        <option value="AB+">AB+</option>
+                        <option value="AB-">AB-</option>
+
+                        <option value="O+">O+</option>
+                        <option value="O-">O-</option>
+                    </select>
+
+                </div>
+
+
+                <!-- Location -->
+                <div class="form-group form-group-location">
+
+                    <label for="searchLocation">
+                        Location
+                    </label>
+
+                    <div class="input-with-icon">
+
+                        <span class="input-icon">
+                            ◉
+                        </span>
+
+                        <input
+                            type="text"
+                            id="searchLocation"
+                            name="location"
+                            placeholder="Enter city, area or location"
+                            autocomplete="off"
+                        >
+
+                    </div>
+
+                </div>
+
+
+                <!-- Availability -->
+                <div class="form-group">
+
+                    <label for="searchAvailability">
+                        Availability
+                    </label>
+
+                    <select
+                        id="searchAvailability"
+                        name="availability"
+                    >
+                        <option value="available">
+                            Available Now
+                        </option>
+
+                        <option value="all">
+                            All Donors
+                        </option>
+                    </select>
+
+                </div>
+
+
+                <button
+                    type="submit"
+                    class="btn btn-primary btn-search"
+                >
+                    Search Donors
+                    <span>→</span>
+                </button>
+
+            </form>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+<!-- =========================================================
+     DONOR DIRECTORY
+========================================================= -->
+
+<section class="content-section donor-section">
+
+    <div class="container">
+
+        <div class="section-heading-row">
+
+            <div>
+
+                <span class="section-label">
+                    Donor Network
+                </span>
+
+                <h2>
+                    Available Blood Donors
+                </h2>
+
+                <p>
+                    Connect with donors who are available to help.
+                </p>
+
+            </div>
+
+            <button
+                type="button"
+                class="text-button"
+                onclick="loadDonors()"
+            >
+                Refresh Donors ↻
+            </button>
+
+        </div>
+
+
+        <!-- Search status -->
+        <div
+            id="donorSearchStatus"
+            class="search-status hidden"
+        ></div>
+
+
+        <!-- Donor cards -->
+        <div
+            id="donorGrid"
+            class="donor-grid"
+        >
+
+            <!-- JavaScript inserts donors here -->
+
+            <div class="empty-state donor-loading-state">
+
+                <div class="empty-icon">
+                    ♥
+                </div>
+
+                <h3>
+                    Loading donors...
+                </h3>
+
+                <p>
+                    Please wait while we load the donor network.
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <!-- View all -->
+        <div class="section-bottom-action">
+
+            <button
+                type="button"
+                class="btn btn-outline"
+                onclick="loadDonors(true)"
+            >
+                View More Donors
+            </button>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+<!-- =========================================================
+     BLOOD REQUESTS
+========================================================= -->
+
+<section
+    class="content-section requests-section"
+    id="requests"
+>
+
+    <div class="container">
+
+        <div class="section-heading-row">
+
+            <div>
+
+                <span class="section-label">
+                    Verified Requests
+                </span>
+
+                <h2>
+                    People Who Need Blood
+                </h2>
+
+                <p>
+                    Help verified blood requests in your area.
+                </p>
+
+            </div>
+
+
+            <button
+                type="button"
+                class="btn btn-primary"
+                onclick="openRequestModal()"
+            >
+                + Request Blood
+            </button>
+
+        </div>
+
+
+        <!-- Request cards -->
+        <div
+            id="requestGrid"
+            class="request-grid"
+        >
+
+            <div class="empty-state">
+
+                <div class="empty-icon">
+                    ✓
+                </div>
+
+                <h3>
+                    Loading requests...
+                </h3>
+
+                <p>
+                    Fetching verified blood requests.
+                </p>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+<!-- =========================================================
+     HOW IT WORKS
+========================================================= -->
+
+<section
+    class="content-section how-section"
+    id="how-it-works"
+>
+
+    <div class="container">
+
+        <div class="center-heading">
+
+            <span class="section-label">
+                Simple Process
+            </span>
+
+            <h2>
+                How BloodConnect Works
+            </h2>
+
+            <p>
+                Getting help or becoming a donor takes only a few simple steps.
+            </p>
+
+        </div>
+
+
+        <div class="steps-grid">
+
+            <!-- Step 1 -->
+            <div class="step-card">
+
+                <div class="step-number">
+                    01
+                </div>
+
+                <div class="step-icon">
+                    👤
+                </div>
+
+                <h3>
+                    Create an Account
+                </h3>
+
+                <p>
+                    Register securely and add your blood group,
+                    location and contact details.
+                </p>
+
+            </div>
+
+
+            <!-- Step 2 -->
+            <div class="step-card">
+
+                <div class="step-number">
+                    02
+                </div>
+
+                <div class="step-icon">
+                    🔎
+                </div>
+
+                <h3>
+                    Find or Request
+                </h3>
+
+                <p>
+                    Search available donors or create a blood
+                    request for a patient.
+                </p>
+
+            </div>
+
+
+            <!-- Step 3 -->
+            <div class="step-card">
+
+                <div class="step-number">
+                    03
+                </div>
+
+                <div class="step-icon">
+                    🤝
+                </div>
+
+                <h3>
+                    Connect
+                </h3>
+
+                <p>
+                    Donors can respond to requests and users
+                    can coordinate the donation.
+                </p>
+
+            </div>
+
+
+            <!-- Step 4 -->
+            <div class="step-card">
+
+                <div class="step-number">
+                    04
+                </div>
+
+                <div class="step-icon">
+                    ❤️
+                </div>
+
+                <h3>
+                    Save a Life
+                </h3>
+
+                <p>
+                    Complete the donation and record the
+                    contribution in your donation history.
+                </p>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+<!-- =========================================================
+     WHY BLOODCONNECT
+========================================================= -->
+
+<section class="content-section features-section">
+
+    <div class="container features-grid">
+
+        <div class="features-content">
+
+            <span class="section-label">
+                Why BloodConnect
+            </span>
+
+            <h2>
+                Built to make blood donation easier.
+            </h2>
+
+            <p>
+                Blood emergencies can happen at any time.
+                BloodConnect makes it easier for donors,
+                patients and hospitals to find each other.
+            </p>
+
+
+            <div class="feature-list">
+
+                <div class="feature-item">
+
+                    <div class="feature-check">
+                        ✓
+                    </div>
+
+                    <div>
+                        <h3>Verified Blood Requests</h3>
+
+                        <p>
+                            Requests can be reviewed by administrators
+                            before appearing in the public network.
+                        </p>
+                    </div>
+
+                </div>
+
+
+                <div class="feature-item">
+
+                    <div class="feature-check">
+                        ✓
+                    </div>
+
+                    <div>
+                        <h3>Donor Availability</h3>
+
+                        <p>
+                            Donors can control whether they are currently
+                            available to help.
+                        </p>
+                    </div>
+
+                </div>
+
+
+                <div class="feature-item">
+
+                    <div class="feature-check">
+                        ✓
+                    </div>
+
+                    <div>
+                        <h3>Donation History</h3>
+
+                        <p>
+                            Donors can maintain a record of their previous
+                            blood donations.
+                        </p>
+                    </div>
+
+                </div>
+
+
+                <div class="feature-item">
+
+                    <div class="feature-check">
+                        ✓
+                    </div>
+
+                    <div>
+                        <h3>Secure Authentication</h3>
+
+                        <p>
+                            User authentication and database access are
+                            handled through Supabase.
+                        </p>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- Feature visual -->
+        <div class="features-visual">
+
+            <div class="impact-card">
+
+                <div class="impact-header">
+
+                    <div class="impact-icon">
+                        ♥
+                    </div>
+
+                    <span>
+                        Our Mission
+                    </span>
+
+                </div>
+
+                <h3>
+                    One connection can make a life-saving difference.
+                </h3>
+
+                <p>
+                    BloodConnect creates a digital bridge between
+                    people willing to donate and people searching
+                    for compatible blood.
+                </p>
+
+
+                <div class="impact-stats">
+
+                    <div>
+                        <strong>8</strong>
+                        <span>Blood Groups</span>
+                    </div>
+
+                    <div>
+                        <strong>24/7</strong>
+                        <span>Network</span>
+                    </div>
+
+                    <div>
+                        <strong>1</strong>
+                        <span>Mission</span>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+<!-- =========================================================
+     ABOUT SECTION
+========================================================= -->
+
+<section
+    class="content-section about-section"
+    id="about"
+>
+
+    <div class="container">
+
+        <div class="about-card">
+
+            <div class="about-content">
+
+                <span class="section-label">
+                    About BloodConnect
+                </span>
+
+                <h2>
+                    Technology that connects people when it matters.
+                </h2>
+
+                <p>
+                    BloodConnect is a blood donation network designed
+                    to simplify the process of finding donors and
+                    managing blood requests.
+                </p>
+
+                <p>
+                    The platform provides donor registration,
+                    availability management, blood-group search,
+                    verified requests, donor responses, donation
+                    history and an administrative dashboard.
+                </p>
+
+            </div>
+
+
+            <div class="about-highlight">
+
+                <div class="about-heart">
+                    ♥
+                </div>
+
+                <strong>
+                    Donate Blood.
+                </strong>
+
+                <span>
+                    Give someone another chance.
+                </span>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+<!-- =========================================================
+     CALL TO ACTION
+========================================================= -->
+
+<section class="cta-section">
+
+    <div class="container">
+
+        <div class="cta-card">
+
+            <div class="cta-content">
+
+                <span class="section-mini-label">
+                    Be Someone's Lifeline
+                </span>
+
+                <h2>
+                    Ready to become a blood donor?
+                </h2>
+
+                <p>
+                    Join the BloodConnect donor network and make
+                    yourself available when someone needs help.
+                </p>
+
+            </div>
+
+            <button
+                type="button"
+                class="btn btn-white btn-large"
+                onclick="openAuth('signup')"
+            >
+                Register as a Donor
+                <span>→</span>
+            </button>
+
+        </div>
+
+    </div>
+
+</section>
+
+</main>
+
+
+<!-- =========================================================
+     FOOTER
+========================================================= -->
+
+<footer class="site-footer">
+
+    <div class="container footer-grid">
+
+        <!-- Brand -->
+        <div class="footer-brand">
+
+            <a
+                href="#home"
+                class="brand footer-logo"
+            >
+                <span class="brand-icon">♥</span>
+
+                <span class="brand-text">
+                    <strong>Blood</strong>Connect
+                </span>
+            </a>
+
+            <p>
+                Connecting blood donors with people who need them.
+            </p>
+
+            <div class="footer-heart">
+                ♥ Every donation matters.
+            </div>
+
+        </div>
+
+
+        <!-- Quick links -->
+        <div class="footer-column">
+
+            <h3>
+                Platform
+            </h3>
+
+            <a href="#find-donor">
+                Find Donor
+            </a>
+
+            <a href="#requests">
+                Blood Requests
+            </a>
+
+            <a href="#how-it-works">
+                How It Works
+            </a>
+
+            <a href="#about">
+                About
+            </a>
+
+        </div>
+
+
+        <!-- Account -->
+        <div class="footer-column">
+
+            <h3>
+                Account
+            </h3>
+
+            <button
+                type="button"
+                onclick="openAuth('login')"
+            >
+                Login
+            </button>
+
+            <button
+                type="button"
+                onclick="openAuth('signup')"
+            >
+                Become a Donor
+            </button>
+
+            <button
+                type="button"
+                onclick="openRequestModal()"
+            >
+                Request Blood
+            </button>
+
+        </div>
+
+
+        <!-- Contact -->
+        <div class="footer-column">
+
+            <h3>
+                BloodConnect
+            </h3>
+
+            <p>
+                A student project designed to demonstrate
+                a complete blood donation management network.
+            </p>
+
+            <span class="footer-project">
+                Built with HTML, CSS, JavaScript & Supabase
+            </span>
+
+        </div>
+
+    </div>
+
+
+    <div class="footer-bottom">
+
+        <div class="container footer-bottom-inner">
+
+            <span>
+                © <span id="currentYear"></span> BloodConnect.
+                All rights reserved.
+            </span>
+
+            <span>
+                Made with ♥ to support blood donation.
+            </span>
+
+        </div>
+
+    </div>
+
+</footer>
+
+
+<!-- =========================================================
+     AUTH MODAL
+========================================================= -->
+
+<div
+    class="modal-overlay"
+    id="authModal"
+    aria-hidden="true"
+>
+
+    <div
+        class="modal auth-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="authModalTitle"
+    >
+
+        <button
+            type="button"
+            class="modal-close"
+            onclick="closeModal('authModal')"
+            aria-label="Close"
+        >
+            ×
+        </button>
+
+
+        <!-- Login -->
+        <div id="loginPanel">
+
+            <div class="modal-header">
+
+                <div class="modal-icon">
+                    🔐
+                </div>
+
+                <span class="section-label">
+                    Welcome Back
+                </span>
+
+                <h2 id="authModalTitle">
+                    Login to BloodConnect
+                </h2>
+
+                <p>
+                    Access your donor or requester dashboard.
+                </p>
+
+            </div>
+
+
+            <form id="loginForm">
+
+                <div class="form-group">
+
+                    <label for="loginEmail">
+                        Email Address
+                    </label>
+
+                    <input
+                        type="email"
+                        id="loginEmail"
+                        placeholder="you@example.com"
+                        required
+                        autocomplete="email"
+                    >
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label for="loginPassword">
+                        Password
+                    </label>
+
+                    <div class="password-field">
+
+                        <input
+                            type="password"
+                            id="loginPassword"
+                            placeholder="Enter your password"
+                            required
+                            autocomplete="current-password"
+                        >
+
+                        <button
+                            type="button"
+                            class="password-toggle"
+                            onclick="togglePassword('loginPassword', this)"
+                            aria-label="Show password"
+                        >
+                            👁
+                        </button>
+
+                    </div>
+
+                </div>
+
+
+                <button
+                    type="submit"
+                    class="btn btn-primary btn-full"
+                >
+                    Login
+                </button>
+
+            </form>
+
+
+            <div class="auth-switch">
+
+                Don't have an account?
+
+                <button
+                    type="button"
+                    onclick="switchAuth('signup')"
+                >
+                    Create Account
+                </button>
+
+            </div>
+
+        </div>
+
+
+        <!-- Signup -->
+        <div
+            id="signupPanel"
+            class="hidden"
+        >
+
+            <div class="modal-header">
+
+                <div class="modal-icon">
+                    ❤️
+                </div>
+
+                <span class="section-label">
+                    Join the Network
+                </span>
+
+                <h2>
+                    Create Your Account
+                </h2>
+
+                <p>
+                    Register as a donor and help save lives.
+                </p>
+
+            </div>
+
+
+            <form id="signupForm">
+
+                <div class="form-row">
+
+                    <div class="form-group">
+
+                        <label for="signupName">
+                            Full Name
+                        </label>
+
+                        <input
+                            type="text"
+                            id="signupName"
+                            placeholder="Enter your full name"
+                            required
+                            autocomplete="name"
+                        >
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label for="signupBloodGroup">
+                            Blood Group
+                        </label>
+
+                        <select
+                            id="signupBloodGroup"
+                            required
+                        >
+
+                            <option value="">
+                                Select
+                            </option>
+
+                            <option value="A+">A+</option>
+                            <option value="A-">A-</option>
+
+                            <option value="B+">B+</option>
+                            <option value="B-">B-</option>
+
+                            <option value="AB+">AB+</option>
+                            <option value="AB-">AB-</option>
+
+                            <option value="O+">O+</option>
+                            <option value="O-">O-</option>
+
+                        </select>
+
+                    </div>
+
+                </div>
+
+
+                <div class="form-row">
+
+                    <div class="form-group">
+
+                        <label for="signupEmail">
+                            Email Address
+                        </label>
+
+                        <input
+                            type="email"
+                            id="signupEmail"
+                            placeholder="you@example.com"
+                            required
+                            autocomplete="email"
+                        >
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label for="signupPhone">
+                            Phone Number
+                        </label>
+
+                        <input
+                            type="tel"
+                            id="signupPhone"
+                            placeholder="10-digit mobile number"
+                            pattern="[0-9]{10}"
+                            maxlength="10"
+                            required
+                            autocomplete="tel"
+                        >
+
+                    </div>
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label for="signupLocation">
+                        Location
+                    </label>
+
+                    <div class="input-with-icon">
+
+                        <span class="input-icon">
+                            ◉
+                        </span>
+
+                        <input
+                            type="text"
+                            id="signupLocation"
+                            placeholder="City / Area"
+                            required
+                            autocomplete="address-level2"
+                        >
+
+                    </div>
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label for="signupPassword">
+                        Password
+                    </label>
+
+                    <div class="password-field">
+
+                        <input
+                            type="password"
+                            id="signupPassword"
+                            placeholder="Minimum 6 characters"
+                            minlength="6"
+                            required
+                            autocomplete="new-password"
+                        >
+
+                        <button
+                            type="button"
+                            class="password-toggle"
+                            onclick="togglePassword('signupPassword', this)"
+                            aria-label="Show password"
+                        >
+                            👁
+                        </button>
+
+                    </div>
+
+                </div>
+
+
+                <label class="checkbox-label">
+
+                    <input
+                        type="checkbox"
+                        id="signupAvailable"
+                        checked
+                    >
+
+                    <span>
+                        I am currently available to donate blood.
+                    </span>
+
+                </label>
+
+
+                <button
+                    type="submit"
+                    class="btn btn-primary btn-full"
+                >
+                    Create Donor Account
+                </button>
+
+            </form>
+
+
+            <div class="auth-switch">
+
+                Already have an account?
+
+                <button
+                    type="button"
+                    onclick="switchAuth('login')"
+                >
+                    Login
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     REQUEST BLOOD MODAL
+========================================================= -->
+
+<div
+    class="modal-overlay"
+    id="requestModal"
+    aria-hidden="true"
+>
+
+    <div
+        class="modal request-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="requestModalTitle"
+    >
+
+        <button
+            type="button"
+            class="modal-close"
+            onclick="closeModal('requestModal')"
+            aria-label="Close"
+        >
+            ×
+        </button>
+
+
+        <div class="modal-header">
+
+            <div class="modal-icon emergency-modal-icon">
+                !
+            </div>
+
+            <span class="section-label">
+                Blood Emergency
+            </span>
+
+            <h2 id="requestModalTitle">
+                Request Blood
+            </h2>
+
+            <p>
+                Submit patient details and the required blood group.
+                Your request will be reviewed before verification.
+            </p>
+
+        </div>
+
+
+        <form id="requestForm">
+
+            <div class="form-row">
+
+                <div class="form-group">
+
+                    <label for="patientName">
+                        Patient Name
+                    </label>
+
+                    <input
+                        type="text"
+                        id="patientName"
+                        placeholder="Patient full name"
+                        required
+                    >
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label for="requestBloodGroup">
+                        Required Blood Group
+                    </label>
+
+                    <select
+                        id="requestBloodGroup"
+                        required
+                    >
+
+                        <option value="">
+                            Select blood group
+                        </option>
+
+                        <option value="A+">A+</option>
+                        <option value="A-">A-</option>
+
+                        <option value="B+">B+</option>
+                        <option value="B-">B-</option>
+
+                        <option value="AB+">AB+</option>
+                        <option value="AB-">AB-</option>
+
+                        <option value="O+">O+</option>
+                        <option value="O-">O-</option>
+
+                    </select>
+
+                </div>
+
+            </div>
+
+
+            <div class="form-row">
+
+                <div class="form-group">
+
+                    <label for="unitsRequired">
+                        Units Required
+                    </label>
+
+                    <input
+                        type="number"
+                        id="unitsRequired"
+                        min="1"
+                        max="20"
+                        value="1"
+                        required
+                    >
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label for="requiredDate">
+                        Required Date
+                    </label>
+
+                    <input
+                        type="date"
+                        id="requiredDate"
+                        required
+                    >
+
+                </div>
+
+            </div>
+
+
+            <div class="form-group">
+
+                <label for="hospitalName">
+                    Hospital / Medical Center
+                </label>
+
+                <input
+                    type="text"
+                    id="hospitalName"
+                    placeholder="Hospital name"
+                    required
+                >
+
+            </div>
+
+
+            <div class="form-group">
+
+                <label for="requestLocation">
+                    Location
+                </label>
+
+                <input
+                    type="text"
+                    id="requestLocation"
+                    placeholder="City / Area"
+                    required
+                >
+
+            </div>
+
+
+            <div class="form-group">
+
+                <label for="requestPriority">
+                    Priority
+                </label>
+
+                <select id="requestPriority">
+
+                    <option value="normal">
+                        Normal
+                    </option>
+
+                    <option value="urgent">
+                        Urgent
+                    </option>
+
+                    <option value="critical">
+                        Critical Emergency
+                    </option>
+
+                </select>
+
+            </div>
+
+
+            <div class="form-group">
+
+                <label for="requestNotes">
+                    Additional Information
+                </label>
+
+                <textarea
+                    id="requestNotes"
+                    rows="4"
+                    placeholder="Add any useful information about the blood requirement..."
+                ></textarea>
+
+            </div>
+
+
+            <div class="form-info-box">
+
+                <span class="info-box-icon">
+                    ℹ
+                </span>
+
+                <p>
+                    For safety, requests are initially marked as
+                    <strong>Pending</strong> and must be verified
+                    by an administrator before appearing publicly.
+                </p>
+
+            </div>
+
+
+            <button
+                type="submit"
+                class="btn btn-primary btn-full"
+            >
+                Submit Blood Request
+            </button>
+
+        </form>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     USER DASHBOARD MODAL
+========================================================= -->
+
+<div
+    class="modal-overlay"
+    id="dashboardModal"
+    aria-hidden="true"
+>
+
+    <div
+        class="modal dashboard-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="dashboardTitle"
+    >
+
+        <button
+            type="button"
+            class="modal-close"
+            onclick="closeModal('dashboardModal')"
+            aria-label="Close"
+        >
+            ×
+        </button>
+
+
+        <div class="dashboard-header">
+
+            <div>
+
+                <span class="section-label">
+                    My Account
+                </span>
+
+                <h2 id="dashboardTitle">
+                    Donor Dashboard
+                </h2>
+
+                <p id="dashboardWelcome">
+                    Manage your donor profile and activity.
+                </p>
+
+            </div>
+
+
+            <div
+                id="dashboardAvailabilityBadge"
+                class="availability-badge"
+            >
+                ● Available
+            </div>
+
+        </div>
+
+
+        <!-- Dashboard stats -->
+
+        <div class="dashboard-stats">
+
+            <div class="dashboard-stat-card">
+
+                <span class="stat-icon">
+                    ♥
+                </span>
+
+                <div>
+                    <strong id="myDonationCount">
+                        0
+                    </strong>
+
+                    <span>
+                        Donations
+                    </span>
+                </div>
+
+            </div>
+
+
+            <div class="dashboard-stat-card">
+
+                <span class="stat-icon">
+                    📋
+                </span>
+
+                <div>
+                    <strong id="myRequestCount">
+                        0
+                    </strong>
+
+                    <span>
+                        My Requests
+                    </span>
+                </div>
+
+            </div>
+
+
+            <div class="dashboard-stat-card">
+
+                <span class="stat-icon">
+                    🤝
+                </span>
+
+                <div>
+                    <strong id="myResponseCount">
+                        0
+                    </strong>
+
+                    <span>
+                        Responses
+                    </span>
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- Availability -->
+
+        <div class="dashboard-panel">
+
+            <div class="dashboard-panel-header">
+
+                <div>
+
+                    <h3>
+                        Donor Availability
+                    </h3>
+
+                    <p>
+                        Let people know whether you are currently
+                        available to donate.
+                    </p>
+
+                </div>
+
+
+                <label class="switch">
+
+                    <input
+                        type="checkbox"
+                        id="availabilityToggle"
+                        onchange="toggleAvailability()"
+                    >
+
+                    <span class="slider"></span>
+
+                </label>
+
+            </div>
+
+        </div>
+
+
+        <!-- Profile -->
+
+        <div class="dashboard-panel">
+
+            <div class="dashboard-panel-header">
+
+                <div>
+
+                    <h3>
+                        My Profile
+                    </h3>
+
+                    <p>
+                        Your donor information.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <div
+                id="dashboardProfile"
+                class="profile-details"
+            >
+                Loading profile...
+            </div>
+
+        </div>
+
+
+        <!-- Donation history -->
+
+        <div class="dashboard-panel">
+
+            <div class="dashboard-panel-header">
+
+                <div>
+
+                    <h3>
+                        Donation History
+                    </h3>
+
+                    <p>
+                        Record your blood donations.
+                    </p>
+
+                </div>
+
+                <button
+                    type="button"
+                    class="btn btn-primary btn-small"
+                    onclick="openDonationModal()"
+                >
+                    + Add Donation
+                </button>
+
+            </div>
+
+
+            <div
+                id="donationHistory"
+                class="dashboard-table-wrapper"
+            >
+                Loading donation history...
+            </div>
+
+        </div>
+
+
+        <!-- My requests -->
+
+        <div class="dashboard-panel">
+
+            <div class="dashboard-panel-header">
+
+                <div>
+
+                    <h3>
+                        My Blood Requests
+                    </h3>
+
+                    <p>
+                        Track requests submitted from your account.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <div
+                id="myRequestsList"
+                class="dashboard-request-list"
+            >
+                Loading requests...
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     ADD DONATION MODAL
+========================================================= -->
+
+<div
+    class="modal-overlay"
+    id="donationModal"
+    aria-hidden="true"
+>
+
+    <div
+        class="modal small-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="donationModalTitle"
+    >
+
+        <button
+            type="button"
+            class="modal-close"
+            onclick="closeModal('donationModal')"
+            aria-label="Close"
+        >
+            ×
+        </button>
+
+
+        <div class="modal-header">
+
+            <div class="modal-icon">
+                ♥
+            </div>
+
+            <span class="section-label">
+                Donation History
+            </span>
+
+            <h2 id="donationModalTitle">
+                Add Donation
+            </h2>
+
+            <p>
+                Record a blood donation you completed.
+            </p>
+
+        </div>
+
+
+        <form id="donationForm">
+
+            <div class="form-group">
+
+                <label for="donationDate">
+                    Donation Date
+                </label>
+
+                <input
+                    type="date"
+                    id="donationDate"
+                    required
+                >
+
+            </div>
+
+
+            <div class="form-group">
+
+                <label for="donationUnits">
+                    Units Donated
+                </label>
+
+                <input
+                    type="number"
+                    id="donationUnits"
+                    value="1"
+                    min="1"
+                    max="5"
+                    required
+                >
+
+            </div>
+
+
+            <div class="form-group">
+
+                <label for="donationNotes">
+                    Notes
+                </label>
+
+                <textarea
+                    id="donationNotes"
+                    rows="3"
+                    placeholder="Optional notes..."
+                ></textarea>
+
+            </div>
+
+
+            <button
+                type="submit"
+                class="btn btn-primary btn-full"
+            >
+                Save Donation
+            </button>
+
+        </form>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     ADMIN DASHBOARD
+========================================================= -->
+
+<div
+    class="modal-overlay"
+    id="adminModal"
+    aria-hidden="true"
+>
+
+    <div
+        class="modal admin-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="adminDashboardTitle"
+    >
+
+        <button
+            type="button"
+            class="modal-close"
+            onclick="closeModal('adminModal')"
+            aria-label="Close"
+        >
+            ×
+        </button>
+
+
+        <!-- Admin header -->
+
+        <div class="admin-header">
+
+            <div>
+
+                <span class="section-label">
+                    Administration
+                </span>
+
+                <h2 id="adminDashboardTitle">
+                    BloodConnect Admin Dashboard
+                </h2>
+
+                <p>
+                    Manage blood requests, donors and responses.
+                </p>
+
+            </div>
+
+
+            <div class="admin-security-badge">
+                🔒 Admin Access
+            </div>
+
+        </div>
+
+
+        <!-- Admin statistics -->
+
+        <div class="admin-stats-grid">
+
+            <div class="admin-stat-card">
+
+                <div class="admin-stat-icon">
+                    📋
+                </div>
+
+                <div>
+                    <span>
+                        Pending Requests
+                    </span>
+
+                    <strong id="adminPendingCount">
+                        0
+                    </strong>
+                </div>
+
+            </div>
+
+
+            <div class="admin-stat-card">
+
+                <div class="admin-stat-icon">
+                    ✓
+                </div>
+
+                <div>
+                    <span>
+                        Verified Requests
+                    </span>
+
+                    <strong id="adminVerifiedCount">
+                        0
+                    </strong>
+                </div>
+
+            </div>
+
+
+            <div class="admin-stat-card">
+
+                <div class="admin-stat-icon">
+                    👥
+                </div>
+
+                <div>
+                    <span>
+                        Registered Donors
+                    </span>
+
+                    <strong id="adminDonorCount">
+                        0
+                    </strong>
+                </div>
+
+            </div>
+
+
+            <div class="admin-stat-card">
+
+                <div class="admin-stat-icon">
+                    🤝
+                </div>
+
+                <div>
+                    <span>
+                        Donor Responses
+                    </span>
+
+                    <strong id="adminResponseCount">
+                        0
+                    </strong>
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- Admin navigation -->
+
+        <div
+            class="admin-tabs"
+            role="tablist"
+        >
+
+            <button
+                type="button"
+                class="admin-tab active"
+                data-admin-tab="pending"
+                onclick="switchAdminTab('pending')"
+            >
+                Pending Requests
+            </button>
+
+            <button
+                type="button"
+                class="admin-tab"
+                data-admin-tab="allRequests"
+                onclick="switchAdminTab('allRequests')"
+            >
+                All Requests
+            </button>
+
+            <button
+                type="button"
+                class="admin-tab"
+                data-admin-tab="donors"
+                onclick="switchAdminTab('donors')"
+            >
+                Donors
+            </button>
+
+            <button
+                type="button"
+                class="admin-tab"
+                data-admin-tab="responses"
+                onclick="switchAdminTab('responses')"
+            >
+                Responses
+            </button>
+
+        </div>
+
+
+        <!-- Admin content -->
+
+        <div
+            id="adminContent"
+            class="admin-content"
+        >
+
+            <div class="admin-loading">
+                Loading administrator data...
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     ADMIN CONFIRMATION MODAL
+========================================================= -->
+
+<div
+    class="modal-overlay"
+    id="adminConfirmModal"
+    aria-hidden="true"
+>
+
+    <div
+        class="modal small-modal"
+        role="dialog"
+        aria-modal="true"
+    >
+
+        <button
+            type="button"
+            class="modal-close"
+            onclick="closeModal('adminConfirmModal')"
+            aria-label="Close"
+        >
+            ×
+        </button>
+
+
+        <div class="modal-header">
+
+            <div class="modal-icon">
+                ⚠
+            </div>
+
+            <h2 id="adminConfirmTitle">
+                Confirm Action
+            </h2>
+
+            <p id="adminConfirmMessage">
+                Are you sure you want to continue?
+            </p>
+
+        </div>
+
+
+        <div class="confirm-actions">
+
+            <button
+                type="button"
+                class="btn btn-outline"
+                onclick="closeModal('adminConfirmModal')"
+            >
+                Cancel
+            </button>
+
+            <button
+                type="button"
+                class="btn btn-primary"
+                id="adminConfirmButton"
+            >
+                Confirm
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     MOBILE BOTTOM ACTION BAR
+========================================================= -->
+
+<div class="mobile-bottom-bar">
+
+    <button
+        type="button"
+        onclick="scrollToSection('home')"
+    >
+        <span>⌂</span>
+        Home
+    </button>
+
+    <button
+        type="button"
+        onclick="scrollToSection('find-donor')"
+    >
+        <span>🔎</span>
+        Find
+    </button>
+
+    <button
+        type="button"
+        onclick="openRequestModal()"
+    >
+        <span>♥</span>
+        Request
+    </button>
+
+    <button
+        type="button"
+        onclick="openDashboard()"
+    >
+        <span>👤</span>
+        Account
+    </button>
+
+</div>
+
+
+<!-- =========================================================
+     SUPABASE
+========================================================= -->
+
+<!-- Supabase JavaScript Client -->
+<script
+    src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
+></script>
+
+
+<!-- Supabase configuration -->
+<script src="config.js"></script>
+
+
+<!-- Main application JavaScript -->
+<script src="app.js"></script>
+
+
+<!-- =========================================================
+     BASIC PAGE INITIALIZATION
+========================================================= -->
+
+<script>
+
+document.addEventListener("DOMContentLoaded", function () {
+
+    /*
+     * Current year
+     */
+    const yearElement = document.getElementById("currentYear");
+
+    if (yearElement) {
+        yearElement.textContent = new Date().getFullYear();
+    }
+
+
+    /*
+     * Mobile navigation
+     */
+    const menuButton =
+        document.getElementById("mobileMenuBtn");
+
+    const navigation =
+        document.getElementById("mainNav");
+
+    if (menuButton && navigation) {
+
+        menuButton.addEventListener("click", function () {
+
+            const isOpen =
+                navigation.classList.toggle("mobile-open");
+
+            menuButton.classList.toggle(
+                "active",
+                isOpen
+            );
+
+            menuButton.setAttribute(
+                "aria-expanded",
+                isOpen ? "true" : "false"
+            );
+
+        });
+
+
+        /*
+         * Close mobile menu after clicking a link
+         */
+        navigation
+            .querySelectorAll("a")
+            .forEach(function (link) {
+
+                link.addEventListener("click", function () {
+
+                    navigation.classList.remove(
+                        "mobile-open"
+                    );
+
+                    menuButton.classList.remove(
+                        "active"
+                    );
+
+                    menuButton.setAttribute(
+                        "aria-expanded",
+                        "false"
+                    );
+
+                });
+
+            });
+
+    }
+
+
+    /*
+     * Close modal when clicking outside it
+     */
+    document
+        .querySelectorAll(".modal-overlay")
+        .forEach(function (overlay) {
+
+            overlay.addEventListener(
+                "click",
+                function (event) {
+
+                    if (event.target === overlay) {
+
+                        overlay.classList.remove("active");
+
+                        overlay.setAttribute(
+                            "aria-hidden",
+                            "true"
+                        );
+
+                    }
+
+                }
+            );
+
+        });
+
+
+    /*
+     * Escape key closes active modal
+     */
+    document.addEventListener(
+        "keydown",
+        function (event) {
+
+            if (event.key === "Escape") {
+
+                document
+                    .querySelectorAll(".modal-overlay.active")
+                    .forEach(function (modal) {
+
+                        modal.classList.remove("active");
+
+                        modal.setAttribute(
+                            "aria-hidden",
+                            "true"
+                        );
+
+                    });
+
+            }
+
+        }
+    );
+
+
+    /*
+     * Set today's date as the default
+     * for donation/request forms.
+     */
+    const today =
+        new Date().toISOString().split("T")[0];
+
+
+    const donationDate =
+        document.getElementById("donationDate");
+
+    if (donationDate) {
+        donationDate.value = today;
+    }
+
+
+    const requiredDate =
+        document.getElementById("requiredDate");
+
+    if (requiredDate) {
+        requiredDate.value = today;
+        requiredDate.min = today;
+    }
+
+
+    /*
+     * Hide loader after the page has loaded.
+     */
+    setTimeout(function () {
+
+        const loader =
+            document.getElementById("pageLoader");
+
+        if (loader) {
+
+            loader.classList.add("loaded");
+
+            setTimeout(function () {
+                loader.remove();
+            }, 500);
+
+        }
+
+    }, 700);
+
+});
+
+</script>
+
 </body>
 </html>
