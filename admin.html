@@ -1,3 +1,658 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>BloodConnect — Admin Dashboard</title><link rel="stylesheet" href="style.css"><style>
-.admin-page{min-height:100vh;background:#fffaf8}.admin-nav{height:72px;background:#fff;border-bottom:1px solid #eadfdb;display:flex;align-items:center;justify-content:space-between;padding:0 6%}.admin-main{padding:45px 6%;max-width:1400px;margin:auto}.admin-header{display:flex;justify-content:space-between;align-items:end;margin-bottom:25px}.admin-header h1{font:700 42px/1.1 'Playfair Display',serif;margin:5px 0}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:15px;margin-bottom:25px}.stat{background:#fff;border:1px solid #eadfdb;border-radius:15px;padding:20px}.stat b{font-size:28px;display:block}.stat span{font-size:12px;color:#777}.panel{background:#fff;border:1px solid #eadfdb;border-radius:15px;padding:20px;margin-bottom:20px}.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}.tabs button{border:1px solid #eadfdb;background:#fff;border-radius:9px;padding:9px 13px;font-weight:700}.tabs button.active{background:#b91c1c;color:#fff;border-color:#b91c1c}.table-wrap{overflow:auto}.admin-table{width:100%;border-collapse:collapse;font-size:12px}.admin-table th,.admin-table td{text-align:left;padding:11px;border-bottom:1px solid #eee;white-space:nowrap}.admin-table th{font-size:10px;color:#777;text-transform:uppercase}.mini{border:0;border-radius:7px;padding:7px 9px;font-size:11px;font-weight:700}.ok{background:#eaf7ee;color:#15803d}.no{background:#fff0ed;color:#b91c1c}.notice{padding:12px;background:#fff7e8;border:1px solid #f2dfb2;border-radius:10px;font-size:12px;margin-bottom:18px}.login-panel{max-width:440px;margin:90px auto;background:#fff;border:1px solid #eadfdb;border-radius:18px;padding:30px;box-shadow:0 18px 50px #3d17120d}.login-panel label{font-size:12px;font-weight:700;display:block;margin:12px 0}.login-panel input{margin-top:5px}@media(max-width:700px){.stats{grid-template-columns:1fr 1fr}.admin-header{align-items:start;flex-direction:column}.admin-main{padding:30px 4%}}
-</style></head><body class="admin-page"><header class="admin-nav"><a class="brand" href="index.html">♥ <b>Blood<span>Connect</span></b></a><div><button class="btn ghost" id="refresh">↻ Refresh</button> <button class="btn primary" id="logout">Logout</button></div></header><main class="admin-main"><div id="loginPanel" class="login-panel"><small class="eyebrow">SECURE ADMIN AREA</small><h2>Administrator Login</h2><p style="font-size:12px;color:#777">Use the account that has been promoted to the <b>admin</b> role in Supabase.</p><form id="loginForm"><label>Email<input id="email" type="email" required></label><label>Password<input id="password" type="password" required></label><button class="btn primary" style="width:100%">Login</button></form></div><div id="dashboard" class="hidden"><div class="admin-header"><div><small class="eyebrow">ADMIN CONTROL CENTER</small><h1>Dashboard</h1><p style="color:#777;font-size:13px">Verify requests, monitor donors and review responses.</p></div><span id="adminName"></span></div><div id="stats" class="stats"></div><div class="panel"><div class="tabs"><button data-tab="pending" class="active">Pending Requests</button><button data-tab="requests">All Requests</button><button data-tab="donors">Donors</button><button data-tab="responses">Responses</button></div><div id="content"></div></div></div></main><div id="toast"></div><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js"></script><script src="admin.js"></script></body></html>
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <meta
+        name="description"
+        content="BloodConnect Admin Dashboard"
+    >
+
+    <title>BloodConnect | Admin Dashboard</title>
+
+    <link rel="stylesheet" href="style.css">
+
+    <style>
+        .admin-page {
+            min-height: 100vh;
+            background: #f7f8fc;
+        }
+
+        .admin-topbar {
+            background: #ffffff;
+            border-bottom: 1px solid #e7e7ed;
+            padding: 18px 30px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .admin-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .admin-brand-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            display: grid;
+            place-items: center;
+            background: #b91c1c;
+            color: white;
+            font-size: 22px;
+        }
+
+        .admin-brand h1 {
+            margin: 0;
+            font-size: 21px;
+        }
+
+        .admin-brand p {
+            margin: 3px 0 0;
+            color: #777;
+            font-size: 13px;
+        }
+
+        .admin-top-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .admin-layout {
+            display: grid;
+            grid-template-columns: 250px 1fr;
+            min-height: calc(100vh - 81px);
+        }
+
+        .admin-sidebar {
+            background: #171923;
+            color: white;
+            padding: 25px 16px;
+        }
+
+        .admin-user {
+            padding: 15px;
+            background: rgba(255,255,255,.07);
+            border-radius: 14px;
+            margin-bottom: 25px;
+        }
+
+        .admin-user-name {
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .admin-user-email {
+            color: #bfc1ca;
+            font-size: 12px;
+            word-break: break-word;
+        }
+
+        .admin-nav {
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
+        }
+
+        .admin-nav button {
+            width: 100%;
+            border: 0;
+            background: transparent;
+            color: #c8c9d0;
+            text-align: left;
+            padding: 13px 15px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: .2s ease;
+        }
+
+        .admin-nav button:hover,
+        .admin-nav button.active {
+            background: rgba(255,255,255,.1);
+            color: white;
+        }
+
+        .admin-main {
+            padding: 30px;
+            overflow-x: hidden;
+        }
+
+        .admin-page-title {
+            margin-bottom: 25px;
+        }
+
+        .admin-page-title h2 {
+            margin: 0 0 5px;
+            font-size: 28px;
+        }
+
+        .admin-page-title p {
+            margin: 0;
+            color: #70717a;
+        }
+
+        .admin-stat-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 18px;
+            margin-bottom: 30px;
+        }
+
+        .admin-stat-card {
+            background: white;
+            border: 1px solid #e9e9ef;
+            border-radius: 16px;
+            padding: 22px;
+            box-shadow: 0 4px 18px rgba(0,0,0,.04);
+        }
+
+        .admin-stat-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 18px;
+        }
+
+        .admin-stat-icon {
+            width: 42px;
+            height: 42px;
+            display: grid;
+            place-items: center;
+            border-radius: 12px;
+            background: #fff0f0;
+            font-size: 20px;
+        }
+
+        .admin-stat-card strong {
+            display: block;
+            font-size: 30px;
+            margin-bottom: 5px;
+        }
+
+        .admin-stat-card span {
+            color: #777;
+            font-size: 13px;
+        }
+
+        .admin-panel {
+            background: white;
+            border: 1px solid #e8e8ee;
+            border-radius: 18px;
+            overflow: hidden;
+            box-shadow: 0 4px 18px rgba(0,0,0,.04);
+        }
+
+        .admin-panel-header {
+            padding: 20px 22px;
+            border-bottom: 1px solid #eeeeF2;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .admin-panel-header h3 {
+            margin: 0;
+            font-size: 18px;
+        }
+
+        .admin-panel-header p {
+            margin: 4px 0 0;
+            color: #777;
+            font-size: 13px;
+        }
+
+        .admin-content {
+            padding: 0;
+        }
+
+        .admin-table-wrap {
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        .admin-table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 850px;
+        }
+
+        .admin-table th,
+        .admin-table td {
+            padding: 15px 18px;
+            text-align: left;
+            border-bottom: 1px solid #eeeeF2;
+            font-size: 13px;
+            vertical-align: middle;
+        }
+
+        .admin-table th {
+            background: #fafafd;
+            color: #666;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .admin-table tr:last-child td {
+            border-bottom: 0;
+        }
+
+        .admin-table td {
+            color: #333;
+        }
+
+        .admin-actions {
+            display: flex;
+            gap: 7px;
+            flex-wrap: wrap;
+        }
+
+        .admin-btn {
+            border: 0;
+            border-radius: 8px;
+            padding: 8px 11px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .admin-btn.verify {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .admin-btn.reject {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .admin-btn.cancel {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .admin-btn:hover {
+            opacity: .8;
+        }
+
+        .status {
+            display: inline-flex;
+            padding: 5px 9px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: capitalize;
+        }
+
+        .status.pending {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .status.verified {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .status.rejected {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .status.cancelled {
+            background: #e5e7eb;
+            color: #374151;
+        }
+
+        .status.fulfilled {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .status.available {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .status.unavailable {
+            background: #f3f4f6;
+            color: #6b7280;
+        }
+
+        .blood-group {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 42px;
+            padding: 6px 9px;
+            border-radius: 8px;
+            background: #fff0f0;
+            color: #b91c1c;
+            font-weight: 800;
+            font-size: 12px;
+        }
+
+        .empty-admin {
+            padding: 60px 25px;
+            text-align: center;
+            color: #777;
+        }
+
+        .empty-admin-icon {
+            font-size: 42px;
+            margin-bottom: 12px;
+        }
+
+        .loading-admin {
+            padding: 60px 25px;
+            text-align: center;
+            color: #777;
+        }
+
+        .spinner-admin {
+            width: 25px;
+            height: 25px;
+            border: 3px solid #ddd;
+            border-top-color: #b91c1c;
+            border-radius: 50%;
+            display: inline-block;
+            animation: adminSpin .8s linear infinite;
+            vertical-align: middle;
+            margin-right: 8px;
+        }
+
+        @keyframes adminSpin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .toast-admin {
+            position: fixed;
+            right: 25px;
+            bottom: 25px;
+            max-width: 350px;
+            padding: 14px 18px;
+            background: #171923;
+            color: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,.2);
+            transform: translateY(30px);
+            opacity: 0;
+            pointer-events: none;
+            transition: .25s ease;
+            z-index: 9999;
+            font-size: 14px;
+        }
+
+        .toast-admin.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .toast-admin.error {
+            background: #991b1b;
+        }
+
+        .mobile-menu-btn {
+            display: none;
+        }
+
+        @media (max-width: 1100px) {
+            .admin-stat-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 800px) {
+
+            .admin-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .admin-sidebar {
+                display: none;
+            }
+
+            .admin-sidebar.mobile-open {
+                display: block;
+            }
+
+            .mobile-menu-btn {
+                display: inline-flex;
+            }
+
+            .admin-main {
+                padding: 20px 15px;
+            }
+
+            .admin-topbar {
+                padding: 14px 15px;
+            }
+
+            .admin-brand p {
+                display: none;
+            }
+
+            .admin-stat-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        @media (max-width: 500px) {
+
+            .admin-stat-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .admin-page-title h2 {
+                font-size: 23px;
+            }
+
+            .admin-top-actions .back-home-text {
+                display: none;
+            }
+
+            .admin-brand h1 {
+                font-size: 17px;
+            }
+        }
+    </style>
+</head>
+
+
+<body>
+
+<div class="admin-page">
+
+    <!-- TOP BAR -->
+    <header class="admin-topbar">
+
+        <div class="admin-brand">
+
+            <button
+                class="admin-btn mobile-menu-btn"
+                onclick="toggleAdminSidebar()"
+            >
+                ☰
+            </button>
+
+            <div class="admin-brand-icon">
+                🩸
+            </div>
+
+            <div>
+                <h1>BloodConnect</h1>
+                <p>Administration Panel</p>
+            </div>
+
+        </div>
+
+
+        <div class="admin-top-actions">
+
+            <a
+                href="index.html"
+                class="btn btn-secondary"
+            >
+                <span class="back-home-text">
+                    ← Back to Website
+                </span>
+                <span class="back-home-mobile">
+                    ←
+                </span>
+            </a>
+
+            <button
+                class="btn btn-danger"
+                onclick="adminLogout()"
+            >
+                Logout
+            </button>
+
+        </div>
+
+    </header>
+
+
+    <!-- LAYOUT -->
+    <div class="admin-layout">
+
+
+        <!-- SIDEBAR -->
+        <aside
+            class="admin-sidebar"
+            id="adminSidebar"
+        >
+
+            <div class="admin-user">
+
+                <div class="admin-user-name">
+                    <span id="adminName">
+                        Loading...
+                    </span>
+                </div>
+
+                <div
+                    class="admin-user-email"
+                    id="adminEmail"
+                >
+                    Loading...
+                </div>
+
+            </div>
+
+
+            <nav class="admin-nav">
+
+                <button
+                    class="active"
+                    data-tab="overview"
+                    onclick="switchAdminPage('overview', this)"
+                >
+                    📊 Dashboard
+                </button>
+
+
+                <button
+                    data-tab="pending"
+                    onclick="switchAdminPage('pending', this)"
+                >
+                    ⏳ Pending Requests
+                </button>
+
+
+                <button
+                    data-tab="requests"
+                    onclick="switchAdminPage('requests', this)"
+                >
+                    📋 All Requests
+                </button>
+
+
+                <button
+                    data-tab="donors"
+                    onclick="switchAdminPage('donors', this)"
+                >
+                    🩸 Donors
+                </button>
+
+
+                <button
+                    data-tab="responses"
+                    onclick="switchAdminPage('responses', this)"
+                >
+                    ❤️ Donor Responses
+                </button>
+
+            </nav>
+
+        </aside>
+
+
+        <!-- MAIN -->
+        <main class="admin-main">
+
+            <div class="admin-page-title">
+
+                <h2 id="adminPageTitle">
+                    Dashboard
+                </h2>
+
+                <p id="adminPageSubtitle">
+                    Monitor BloodConnect activity and manage requests.
+                </p>
+
+            </div>
+
+
+            <!-- MAIN CONTENT -->
+            <div id="adminPageContent">
+
+                <div class="loading-admin">
+                    <span class="spinner-admin"></span>
+                    Loading admin dashboard...
+                </div>
+
+            </div>
+
+        </main>
+
+    </div>
+
+</div>
+
+
+<!-- TOAST -->
+<div
+    id="adminToast"
+    class="toast-admin"
+></div>
+
+
+<!-- SUPABASE -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<!-- CONFIG -->
+<script src="config.js"></script>
+
+<!-- ADMIN JS -->
+<script src="admin.js"></script>
+
+</body>
+
+</html>
